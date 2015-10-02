@@ -7,6 +7,9 @@
 \usepackage{paralist}
 \usepackage[normalem]{ulem}
 \usepackage[pdftex]{hyperref}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
 
 \usepackage{url}
 \usepackage{latexsym}
@@ -48,7 +51,7 @@
 \newcommand{\out}{\mathbf{y}}
 \newcommand{\gauss}{\mathbf{G_N}}
 \newcommand{\eye}{\mathbf{I}}
-\newcommand{\softmax}{\phi}
+\newcommand{\softmax}{\text{softmax}}
 \newcommand{\targ}{\mathbf{t}}
 \newcommand{\metric}{\mathbf{G}}
 \newcommand{\sample}{\mathbf{z}}
@@ -113,6 +116,7 @@
 \newcommand{\grad}[0]{\nabla}
 \newcommand{\alert}[1]{\textcolor{red}{#1}}
 \newcommand{\N}[0]{\mathcal{N}}
+\newcommand{\YY}[0]{\mathcal{Y}}
 \newcommand{\BB}[0]{\mathcal{B}}
 \newcommand{\LL}[0]{\mathcal{L}}
 \newcommand{\HH}[0]{\mathcal{H}}
@@ -137,6 +141,8 @@
 \DeclareMathOperator*{\argmin}{\arg \min}
 \newcommand{\newln}{\\&\quad\quad{}}
 
+\newcommand{\MatSum}{\text{MatSum}}
+\newcommand{\MatMul}{\text{MatMul}}
 \newcommand{\KL}{\text{KL}}
 \newcommand{\data}{\text{data}}
 \newcommand{\rect}{\text{rect}}
@@ -663,7 +669,7 @@ of the training set $D$.
 
 Why is the growing size of the training set making it more and more
 computationally demanding to compute $\tilde{C}$ and $\nabla \tilde{C}$?  This
-is because both of them are essentially the sum of as many per-example costs as
+is because both of them are essentially the sum of as many per-sample costs as
 there are examples in the training set. In other words,
 \begin{align*}
     &\tilde{C}(\TT) = \frac{1}{N} \sum_{n=1}^N \tilde{C}(\vx^n, \vy^n | \TT), \\
@@ -1217,17 +1223,19 @@ Furthermore, the sum of $\mu_k$'s must sum to $1$. This can be achieved easily
 by letting $f$ to compute affine transformation of $x$ (or $\phi(x)$) to return
 $K$ (unbounded) real values followed by a so called {\em softmax}
 function~\cite{Bridle1990}:
-\begin{align*}
+\begin{align}
+    \label{eq:softmax}
     \mu_k = \frac{\exp(w_k^\top \phi(x) + b_k)}{\sum_{k'=1}^K \exp(w_{k'}^\top
     \phi(x) + b_k)},
-\end{align*}
+\end{align}
 where $w_k \in \RR^{\dim(\phi(x))}$ and $b_k \in \RR$ are the parameters of
 affine transformation.
 
 In this case, the (empirical) cost function based on the KL divergence is
-\begin{align*}
-    C(\TT) = \frac{1}{N} \sum_{n=1}^N \sum_{k=1}^K \II_{k=y^n} \mu_k,
-\end{align*}
+\begin{align}
+    \label{eq:cat_crossentropy}
+    C(\TT) = -\frac{1}{N} \sum_{n=1}^N \sum_{k=1}^K \II_{k=y^n} \mu_k,
+\end{align}
 where 
 \begin{align*}
     \II_{k=y^n} = \left\{ 
@@ -1311,6 +1319,7 @@ But, regardlessly, this is not what we want.\footnote{
 What we want is to fully tune the whole thing.
 
 \subsection{Multilayer Perceptron}
+\label{sec:mlp}
 
 The basic idea of multilayer perceptron is to stack a large number of those
 feature extraction {\em layers} in Eq.~\eqref{eq:layer} between the input and
@@ -1563,6 +1572,7 @@ For $c$, it's straightforward, since
 
 
 \subsubsection{Automating Backpropagation}
+\label{sec:autodiff}
 
 This procedure, presented as two examples, is called a {\em backpropagation}
 algorithm. If you read textbooks on neural networks, you see a fancier way to
@@ -1771,6 +1781,576 @@ function nodes.
 
 \section{Recurrent Neural Networks and Gated Recurrent Units}
 
+After the last lecture I hope that it has become clear how to build a multilayer
+perceptron. Of course, there are so many details that I did not mention, but are
+extremely important in practice. For instance, how many layers of simple
+transformations Eq.~\eqref{eq:layer} should a multilayer perceptron have for a
+certain task? How wide (equiv. $\dim(\phi_0(\vx))$) should each transformation
+be? What other transformation layers are there? What kind of learning rate
+$\eta$ (see Eq.~\eqref{eq:GD}) should we use? How should we schedule this
+learning rate over training? Answers to many of these questions are
+unfortunately heavily task-, data- and model-dependent, and I cannot provide any
+general answer to them.
+
+%Perhaps more surprisingly, I have not mentioned convolutional neural nets a
+%single time. 
+%and extensions of
+%simple multilayer perceptrons, such as convolutional neural networks which have
+%become {\em the} standard in solving many challenging computer vision and speech
+%tasks. 
+
+\subsection{Recurrent Neural Networks}
+
+Instead, I will move on to describing how we can build a neural
+network\footnote{
+    Now, let me begin using a term neural network instead of a general function.
+} to handle a variable length input. Until now the input $x$ was assumed to be
+either a scalar or a vector of the fixed number of dimensions. From here on
+however, we remove this assumption of a fixed size input and consider the case
+of having a variable length input $x$. 
+
+What do I mean by a {\em variable length input}? A variable length input $x$ is
+a {\em sequence} where each input $x$ has a different number of elements. For
+instance, the first training example's input $x^1$ may consist of $l^1$ elements
+such that
+\begin{align*}
+    x^1 = (x^1_1, x^1_2, \ldots, x^1_{l^1}).
+\end{align*}
+Meanwhile, another example's input $x^n$ may be a sequence of $l^n \neq l^1$ elements:
+\begin{align*}
+    x^n = (x^n_1, x^n_2, \ldots, x^n_{l^n}).
+\end{align*}
+
+Let's go back to very basic about dealing with these kinds of sequences.
+Furthermore, let us assume that each element $x_i$ is binary, meaning that it is
+either $0$ or $1$. What would be the most natural way to write a function that
+returns the number of $1$'s in an input sequence $x=(x_1,x_2,\ldots,x_{l})$? My
+answer is to first build a recursive function called {\sc add1}, shown in
+Alg.~\ref{alg:add1}.  This function {\sc add1} will be called for each element of
+the input $x$, as in Alg.~\ref{alg:sum}.
+
+\begin{algorithm}[ht]
+\begin{algorithmic}
+    \State $s \leftarrow 0$
+    \Function{add1}{$v$,$s$}
+    \If{$v=0$} 
+    \Return{$s$} 
+    \Else~
+    \Return{$s+1$} 
+    \EndIf
+    \EndFunction
+\end{algorithmic}
+\caption{A function {\sc add1}}
+\label{alg:add1}
+\end{algorithm}
+
+\begin{algorithm}[ht]
+\begin{algorithmic}
+    \State $s \leftarrow 0$
+    \For{$i\leftarrow 1,2,\ldots,l$}
+    $s \leftarrow \text{\sc{add1}}(x_i,s)$
+    \EndFor
+\end{algorithmic}
+\caption{A function {\sc add1}}
+\label{alg:sum}
+\end{algorithm}
+
+There are two important components in this implementation. First, there is a
+memory $s$ which counts the number of $1$'s in the input sequence $x$. Second,
+a single function {\sc add1} is applied to each symbol in the sequence {\em one
+at a time} together with the memory $s$. Thanks to these two properties, our
+implementation of the function {\sc add1} can be used with the input sequence of
+{\em any length}.
+
+Now let us generalize this idea of having a memory and a recursive function that
+works over a variable length sequence. One likely most general case of this idea
+is a digital computer we use everyday. A computer program is a sequence $x$ of
+instructions $x_i$. A central processing unit (CPU) reads each instruction of
+this program and manipulates its registers according to what the instruction
+says. Manipulating registers is often equivalent to manipulating any
+input--output (I/O) device attached to the CPU. Once one instruction is
+executed, the CPU moves on to the next instruction which will be executed with
+the content of the registers from the previous step. In other words, these
+registers work as a memory in this case ($s$ from Alg.~\ref{alg:sum},) and the
+execution of an instruction by the CPU corresponds to a recursive function
+({\sc add1} from Alg.~\ref{alg:add1}.)
+
+Both {\sc add1} and CPU are {\em hard coded} in the sense that they do what they
+have been designed and manufactured to do. Clearly, this is not what we want,
+because nobody knows how to design a CPU or a recursive function for natural
+language understanding, which is our ultimate goal. Instead what we want is to
+have a parametric recursive function that is able to read a sequence of
+(linguistic) symbols and use a memory in order to {\em understand natural
+languages}.
+
+To build this parametric recursive function\footnote{
+    In neural network research, we call this function a {\em recurrent neural
+    network.}
+}
+that works on a variable-length
+input sequence $x=(x_1, x_2, \ldots, x_l)$, we now know that there needs to be a
+memory. We will use one vector $\vh \in \RR^{d_h}$ as this memory vector. As is
+clear from Alg.~\ref{alg:add1}, this recursive function takes as input both one
+input symbol $x_t$ and the memory vector $\vh$, and it returns the updated memory
+vector. It often helps to {\em time index} the memory vector as well, such that
+the input to this function is $\vh_{t-1}$ (the memory after processing the
+previous symbol $x_{t-1}$,) and we use $\vh_t$ to denote the memory vector
+returned by the function. This function is then
+\begin{align*}
+    h_t = f(x_t, \vh_{t-1})
+\end{align*}
+
+Now the big question is what kind of parametric form this recursive function $f$
+takes? We will follow the simple transformation layer from Eq.~\eqref{eq:layer},
+in which case we get
+\begin{align}
+    \label{eq:rnn_layer}
+    f(x_t, \vh_{t-1}) = g(\mW \phi(x_t) + \mU \vh_{t-1}),
+\end{align}
+where $\phi(x_t)$ is a function that transforms the input symbol (often
+discrete) into a $d$-dimensional real-valued vector. $\mW\in \RR^{d_h\times d}$
+and $\mU^{d_h \times d_h}$ are parameters of this function. A nonlinear
+activation function $g$ can be any function, but for now, we will assume that it
+is an element-wise nonlinear function such as $\tanh$.
+
+\subsubsection{Fixed-Size Output $y$}
+\label{sec:rnn_fixed_y}
+
+Because our goal is to approximate an underlying, true function, we now need to
+think of how we use this recursive function to {\em return} an output $y$. As
+with the case of variable-length sequence input $x$, $y$ can only be either a
+fixed-size output, such as a category to which the input $x$ belongs, or a
+variable-length sequence output. Here let us discuss the case of having a
+fixed-size output $y$.
+
+The most natural approach is to use the last memory vector $\vh_l$ to produce
+the output (or more often output distribution.) Consider a task of binary
+classification where $y$ is either positive ($1$) or negative ($0$), in which
+case a Bernoulli distribution fits perfectly. A Bernoulli distribution is fully
+characterized by a single parameter $\mu$. Hence,
+\begin{align*}
+    \mu = \sigma(\vv^\top \vh_l),
+\end{align*}
+where $\vv \in \RR^{d_h}$ is a weight vector, and $\sigma$ is a sigmoid
+function.
+
+This now looks very much like the multilayer perceptron from Sec.~\ref{sec:mlp}.
+The whole function given an input sequence $x$ computes
+\begin{align}
+    \label{eq:rnn_unrolled}
+    \mu = \sigma(\vv^\top 
+    \underbrace{
+        g(\mW \phi(x_l) + \mU 
+        g(\mW \phi(x_{l-1}) + \mU
+        g(\mW \phi(x_{l-2}) + \cdots
+    g(\mW \phi(x_{1}) + \mU \vh_0) \cdots)))}_{(a) \text{ recurrence}}),
+\end{align}
+where $\vh_0$ is an initial memory state which can be simply set to an all-zero
+vector. 
+
+The main difference is that the input is not given only to the first simple
+transformation layer, but is given to all those transformation layers (one at a
+time.) Also, each transformation layer {\em shares} the parameters $\mW$ and
+$\mU$.\footnote{
+    Note that for brevity, I have omitted bias vectors. This should not matter
+    much, as having a bias vector is equivalent to augmenting the input with a
+    constant element whose value is fixed at $1$. Why? Because,
+    \begin{align*}
+        \left[ \mW ; \vb \right]
+    \left[ \begin{array}{c} \vx \\1 \end{array} \right]
+        = \mW \vx + \vb
+    \end{align*}
+    Note that as I have declared before all vectors are {\em column} vectors.
+} The first two steps of the recurrence part (a) of Eq.~\eqref{eq:rnn_unrolled}
+are shown as a computational graph in Fig.~\ref{fig:rec_unrolled}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/comp_graph_rec1.pdf}
+    \caption{
+        Sample computational graph of the recurrence in
+        Eq.~\eqref{eq:rnn_unrolled}.
+    }
+    \label{fig:rec_unrolled}
+\end{figure}
+
+As this is not any special computational graph, the whole discussion on how to
+automate backpropagation (computing the gradient of the cost function w.r.t. the
+parameters) in Sec.~\ref{sec:autodiff} applies to recurrent neural networks
+directly, except for one potentially confusing point.
+
+\subsubsection{Multiple Child Nodes and Derivatives}
+
+It may be confusing how to handle those parameters that are shared across
+multiple time steps; $\mW$ and $\mU$ in Fig.~\ref{fig:rec_unrolled}. In fact, in
+the earlier section (Sec.~\ref{sec:autodiff}), we did not discuss about what to
+do when the output of one node is fed into multiple function nodes.
+Mathematically saying, what do we do in the case of 
+\begin{align*}
+    c = g(f_1(x), f_2(x), \ldots, f_n(x))?
+\end{align*}
+
+$g$ can be any function, but let us look at two widely used cases:
+\begin{itemize}
+    \item Addition: $g(f_1(x), \ldots, f_n(x)) = \sum_{i=1}^n f_i(x)$
+        \begin{align*}
+            \frac{\partial c}{\partial x} = \frac{\partial c}{\partial g} 
+            \sum_{i \in \left\{ 1, 2, \ldots, n\right\}} 
+            \frac{\partial f_i}{\partial x}.
+        \end{align*}
+    \item Multiplication: $g(f_1(x), \ldots, f_n(x)) = \prod_{i=1}^n f_i(x)$
+        \begin{align*}
+            \frac{\partial c}{\partial x} = \frac{\partial c}{\partial g} 
+            \sum_{i \in \left\{ 1, 2, \ldots, n\right\}} 
+            \left(\prod_{j \neq i} f_j(x)\right)
+            \frac{\partial f_i}{\partial x}.
+        \end{align*}
+\end{itemize}
+
+From these two cases, we can see that in general
+\begin{align*}
+    \frac{\partial c}{\partial x} = \frac{\partial c}{\partial g} 
+    \sum_{i \in \left\{ 1, 2, \ldots, n\right\}} 
+    \frac{\partial g}{\partial f_i}
+    \frac{\partial f_i}{\partial x}.
+\end{align*}
+This means that when multiple derivatives are {\em backpropagated} into a single
+node, the node should first {\em sum them} and multiply its summed derivative
+with its own derivative.
+
+What does this mean for the shared parameters of the recurrent neural network?
+In an equation,
+\begin{align}
+    \label{eq:bptt}
+    \frac{\partial C}{\partial W} =&
+    \underbrace{
+        \frac{\partial C}{\partial \MatSum^l}
+    }_{(a)}
+    \frac{\partial \MatSum^l}{\partial \MatMul^l}
+    \frac{\partial \MatMul^l}{\partial W} \\
+    +& 
+    \underbrace{
+        \frac{\partial C}{\partial \MatSum^l}
+    }_{(a)}
+    \underbrace{
+        \frac{\partial \MatSum^l}{\partial \MatSum^{l-1}}
+    }_{(b)}
+    \frac{\partial \MatSum^{l-1}}{\partial \MatMul^{l-1}}
+    \frac{\partial \MatMul^{l-1}}{\partial W} 
+    \nonumber \\
+    +& 
+    \underbrace{
+        \frac{\partial C}{\partial \MatSum^l}
+    }_{(a)}
+    \underbrace{
+        \frac{\partial \MatSum^l}{\partial \MatSum^{l-1}}
+    }_{(b)}
+    \underbrace{
+        \frac{\partial \MatSum^{l-1}}{\partial \MatSum^{l-2}}
+    }_{(c)}
+    \frac{\partial \MatSum^{l-2}}{\partial \MatMul^{l-2}}
+    \frac{\partial \MatMul^{l-2}}{\partial W} 
+    \nonumber \\
+    +& 
+    \cdots,
+    \nonumber
+\end{align}
+where the superscript $l$ of each function node denotes the layer at which the
+function node resides. 
+
+Similarly to what we've observed in Sec.~\ref{sec:autodiff}, many derivatives
+are shared across the terms inside the summation in Eq.~\eqref{eq:bptt}. This
+allows us to compute the derivative of the cost function w.r.t. the
+parameter $W$ efficiently by simply running the recurrent neural network
+backward. 
+
+\subsubsection{Example: Sentiment Analysis}
+
+There is a task in natural language processing called {\em sentiment analysis}.
+As the name suggests, the goal of this task is to predict the sentiment of a
+given text. This is definitely one function that a human can do fairly well:
+when you read a critique's review of a movie, you can easily tell whether the
+critique likes, hates or is neutral to the movie. Also, even without a star
+rating of a product on Amazon, you can quite easily tell whether a user like it
+by reading her/his review of the product.
+
+In this task, an input sequence $x$ is a given text, and the fixed-size output
+is its label which is almost always one of positive, negative or neutral. Let us
+assume for now that the input is a {\em sequence of words}, where each word
+$\vx_i$ is represented as a so-called one-hot vector.\footnote{
+    A one-hot vector is a way to represent a discrete symbol as a binary vector.
+    The one-hot vector $\vv_i$ of a symbol $i \in V = \left\{ 1, 2, \ldots, |V|
+    \right\}$ is 
+    \begin{align*}
+        \vv_i = [ \underbrace{0, \ldots, 0}_{1,\ldots,i-1}, 
+        \underbrace{1}_{i}, \underbrace{0, \ldots, 0}_{i+1, \ldots,
+    |V|}]^\top.
+    \end{align*}
+} In this case, we can use 
+\begin{align*}
+    \phi(x_t) = \vx_t
+\end{align*}
+in Eq.~\eqref{eq:rnn_layer}.
+
+Once the input sequence, or paragraph in this specific example, is read, we get
+the last memory state $\vh_l$ of the recurrent neural network. We will
+affine-transform $\vh_l$ followed by the {\em softmax} function to obtain the
+conditional distribution of the output $y \in \left\{ 1, 2, 3 \right\}$ ($1$:
+positive, $2$: neutral and $3$: negative):
+\begin{align*}
+    \mu = \left[ \mu_1, \mu_2, \mu_3 \right]^\top = \softmax(\mV \vh_l),
+\end{align*}
+where $\mu_1$, $\mu_2$ and $\mu_3$ are the probabilities of ``positive'',
+``neural'' and ``negative''. See Eq.~\eqref{eq:softmax} for more details on the
+softmax function.
+
+Because this network returns a categorial distribution, it is natural to use the
+(categorical) cross entropy as the cost function. See
+Eq.~\eqref{eq:cat_crossentropy}. A working example of this sentiment analyzer
+based on recurrent neural networks will be introduced and discussed during the
+lab session.\footnote{
+    For those eager to learn more, see
+    \url{http://deeplearning.net/tutorial/lstm.html} in advance of the lab
+    session.
+}
+
+
+\subsubsection{Variable-Length Output $y$: $|x|=|y|$}
+
+Let's generalize what we have discussed so far to recurrent neural networks
+here. Instead of a fixed-size output $y$, we will assume that the goal is to
+label each input symbol, resulting in the output sequence $y=(y_1, y_2, \ldots,
+y_l)$ of the same length as the input sequence $x$.
+
+What kind of applications can you think of that returns the output sequence as
+long as the input sequence? One of the most widely studied problems in natural
+language processing is a problem of classifying each word in a sentence into one
+of part-of-speech tags, often called POS tagging (see Sec.~3.1 of
+\cite{manning1999foundations}.) Unfortunately, in my personal opinion, this is
+perhaps the least interesting problem of all time in natural language
+understanding, but perhaps the most well suited problem for this section.
+
+In its simplest form, we can view this problem of POS tagging as classifying
+each word in a sentence as one of {\em noun}, {\em verb}, {\em adjective} and
+{\em others}. As an example, given the following input sentence $x$
+\begin{align*}
+    x = (\text{Children}, \text{eat}, \text{sweet}, \text{candy}),
+\end{align*}
+the goal is to output
+\begin{align*}
+    y = (\text{noun}, \text{verb}, \text{adjective}, \text{noun}).
+\end{align*}
+
+This task can be solved by a recurrent neural network from the preceding section
+(Sec.~\ref{sec:rnn_fixed_y}) after a quite trivial modification. Instead of
+waiting until the end of the sentence to get the last memory state of the
+recurrent neural network, we will use the {\em immediate memory state} to
+predict the label at each time step $t$. 
+
+At each time $t$, we get the immediate memory state $\vh_t$ by
+\begin{align}
+    \label{eq:rnn_h_x}
+    \vh_t = f(x_t, \vh_{t-1}),
+\end{align}
+where $f$ is from Eq.~\eqref{eq:rnn_layer}. Instead of continuing on to
+processing the next word, we will first predict the label of the $t$-th input
+word $x_t$.
+
+This can be done by 
+\begin{align*}
+    \mu_t = \left[ \mu_{t,1}, \mu_{t,2}, \mu_{t,3}, \mu_{t,4} \right]^\top = \softmax(\mV
+    \vh_{t}).
+\end{align*}
+Four $\mu_{t,i}$'s correspond to the probabilities of the four categories; (1)
+noun, (2) verb, (3) adjective and (4) others.
+
+From this output distribution at time step $t$, we can define a {\em per-step},
+{\em per-sample} cost function:
+\begin{align}
+    \label{eq:cost_per_step}
+    C_{x,t}(\TT) = -\sum_{k=1}^K \II_{k=y} \mu_{t,k},
+\end{align}
+where $K$ is the number of categories, four in this case.  We discussed earlier
+in Eq.~\eqref{eq:cat_crossentropy}.
+Naturally a per-sample cost function is defined as the sum of these per-step,
+per-sample cost functions:
+\begin{align}
+    \label{eq:cost_per_sample}
+    C_x(\TT) = -\sum_{t=1}^l \sum_{k=1}^K \II_{k=y} \mu_{t,k}.
+\end{align}
+
+\paragraph{Incorporating the Output Structures} 
+This formulation of the cost function is equivalent to maximizing the
+log-probability of the correct output sequence given an input sequence, where
+the conditional log-probability is defined as
+\begin{align}
+    \label{eq:log_y_x_seq}
+    \log p(y|x) = \underbrace{\sum_{t=1}^l \underbrace{\log
+    p(y_t|x_1,\ldots,x_t)}_{\text{Eq.~\eqref{eq:cost_per_step}}}}_{
+        \text{Eq.~\eqref{eq:cost_per_sample}}}.
+\end{align}
+This means that the network is predicting the label of the $t$-th input symbol
+using only the input symbols read up to that point (i.e., $x_1, x_2, \ldots,
+x_t$.)
+
+In other words, this means that the recurrent neural network is {\em not} taking
+into account the structure of the output sequence. For instance, even without
+looking at the input sequence, in English it is well known that the probability
+of the next word being a noun increases if the current word is an
+adjective.\footnote{
+    Okay, this requires a more thorough analysis, but for the sake of the
+    argument, which does not have to do anything with actual POS tags, let's
+    believe that this is indeed the case.
+} This kind of structures in the output are effectively ignored in this
+formulation.
+
+Why is this so in this formulation? Because, we have made an assumption that the
+output symbols $y_1, y_2, \ldots, y_l$ are mutually independent conditioned on
+the input sequence. This is clear from Eq.~\eqref{eq:log_y_x_seq} and the
+definition of the conditional independence:
+\begin{align*}
+    &\text{$Y_1$ and $Y_2$ are conditionally independent dependent on $X$} \\
+    \iff&
+    p(Y_1, Y_2|X) = p(Y_1|X)p(Y_2|x).
+\end{align*}
+
+If the underlying, true conditional distribution obeyed this assumption of
+conditional independence, there is no worry. However, this is a very strong
+assumption for many of the tasks we run into, apparently from the example of POS
+tagging. Then, how can we exploit the structure in the output sequence?
+
+One simple way is to make a less strong assumption about the conditional
+probability of the output sequence $y$ given $x$. For instance, we can assume
+that
+\begin{align*}
+    \log p(y|x) = \sum_{i=1}^l \log p(y_i|y_{<i}, x_{\leq i}),
+\end{align*}
+where $y_{<i}$ and $x_{\leq i}$ denote all the output symbols before the $i$-th one 
+and all the input symbols up to the $i$-th one, respectively.
+
+Now the question is how we can incorporate this into the existing formulation of
+a recurrent neural network from Eq.~\eqref{eq:rnn_h_x}. It turned out that the
+answer is extremely simple. All we need to do is to compute the memory state of
+the recurrent neural network based not only on the current input symbol $x_t$
+and the previous memory state $\vh_{t-1}$, but also on the previous output
+symbol $y_{t-1}$ such that
+\begin{align*}
+    \vh_t = f(x_t, y_{t-1}, \vh_{t-1}).
+\end{align*}
+Similarly to Eq.~\eqref{eq:rnn_layer}, we can think of implementing $f$ as
+\begin{align*}
+    f(x_t, y_{t-1}, \vh_{t-1}) = g(\mW_x \phi_x(x_t) + \mW_y \phi_y(y_{t-1}) +
+    \mW_h \vh_{t-1}).
+\end{align*}
+
+There are two questions naturally arising from this formulation. First, what do
+we do when computing $\vh_1$? This is equivalent to saying what $\phi_y(y_{0})$
+is. There are two potential answers to this question:
+\begin{enumerate}
+    \itemsep 0em
+    \item Fix $\phi_y(y_0)$ to an all-zero vector
+    \item Consider $\phi_y(y_0)$ as an additional parameter
+\end{enumerate}
+In the latter case, $\phi_y(y_0)$ will be estimated together with all the other
+parameters such as those weight matrices $\mW_x$, $\mW_y$, $\mW_h$ and $\mV$.
+
+\paragraph{Inference}
+The second question involves how to handle $y_{t-1}$. During training, it is
+quite straightforward, as our cost function (KL-divergence between the
+underlying, true distribution and the parametric conditional distribution
+$p(y|x)$, approximated by Monte Carlo method) says that we use the groundtruth
+value for $y_{t-1}$'s. 
+
+It is however not clear what we should do when we test the trained network,
+because then we are not given the groundtruth output sequence. This process of
+finding an output that maximizes the conditional (log-)probability is called
+{\em inference}\footnote{
+    Okay, I confess. The term {\em inference} refers to a much larger class of
+    problems, even if we consider only machine learning. However, let me simply
+    use this term to refer to a task of finding the most likely output of a
+    function.
+}:
+\begin{align*}
+    \hat{y} = \argmax_y \log p(y|x)
+\end{align*}
+
+The exact inference is quite straightforward. One can simply evaluate $\log
+p(y|x)$ for every possible output sequence and choose the one with the highest
+conditional probability. Unfortunately, this is almost always intractable, as
+the number of every possible output sequence grows exponentially with respect to
+the length of the sequence:
+\begin{align*}
+    |\YY| = K^l,
+\end{align*}
+where $\YY$, $K$ and $l$ are the set of all possible output sequences, the
+number of labels and the length of the sequence, respectively. Thus, this is
+necessary to resort to approximate search over the set $\YY$.
+
+The most naive approach to approximate inference is a greedy one. With the
+trained model, you predict the first output symbol $\hat{y}_1$ based on the
+first input symbol $x_1$ by selecting the category of the highest probability
+$p(y_1|x_1)$. Now, given $\hat{y}_1$, $x_1$ and $x_2$, we compute
+$p(y_2|x_1,x_2,y_1)$ from which we select the next output symbol $\hat{y}_2$
+with the highest probability. We continue this process iteratively until the
+last output symbol $\hat{y}_l$ is selected.
+
+This is greedy in the sense that any early choice with a high conditional
+probability may turn out to be unlikely one due to extremely low conditional
+probabilities later on. It is highly related to the so-called {\em garden path
+sentence} problem. To know more about this, read, for instance, Sec.~3.2.4 of
+\cite{manning1999foundations}.
+
+It is possible to alleviate this issue by considering $N<K$ best hypotheses of
+the output sequence at each time step. This procedure is called {\em beam
+search}, and we will discuss more about this in a later lecture on neural
+machine translation.
+
+\subsection{Vanishing Gradient}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1840,7 +2420,7 @@ function nodes.
 
 
 
-\nocite{pesetsky1999linguistic}
+%\nocite{pesetsky1999linguistic}
 
 
 
