@@ -90,8 +90,8 @@
 \newcommand{\vL}[0]{\vect{L}}
 \newcommand{\vr}[0]{\vect{r}}
 \newcommand{\vone}[0]{\vect{1}}
-\newcommand{\mW}[0]{\matr{W}}
 
+\newcommand{\mW}[0]{\matr{W}}
 \newcommand{\mE}[0]{\matr{E}}
 \newcommand{\mG}[0]{\matr{G}}
 \newcommand{\mX}[0]{\matr{X}}
@@ -103,6 +103,8 @@
 \newcommand{\mA}{\matr{A}}
 \newcommand{\mC}{\matr{C}}
 \newcommand{\mD}{\matr{D}}
+\newcommand{\mL}[0]{\matr{L}}
+\newcommand{\mR}[0]{\matr{R}}
 \newcommand{\mS}{\matr{S}}
 \newcommand{\mI}{\matr{I}}
 \newcommand{\td}[0]{\text{d}}
@@ -1681,6 +1683,7 @@ all the variable nodes (or a subset of them.) Then, we can use the same facility
 to compute the second-order derivatives, right? 
 
 \subsubsection{What if a Function is {\em not} Differentiable?}
+\label{sec:nonlinearities}
 
 From the description so far, one thing we notice is that backpropagation works
 only when each and every function node (in a computational graph) is
@@ -2305,7 +2308,131 @@ the output sequence at each time step. This procedure is called {\em beam
 search}, and we will discuss more about this in a later lecture on neural
 machine translation.
 
-\subsection{Vanishing Gradient}
+\subsection{Gated Recurrent Units}
+
+\subsubsection{Simple Recurrent Units}
+
+So far, we have considered the simple transformation layer from
+Eq.~\eqref{eq:rnn_layer}:
+\begin{align*}
+    f(x_t, \vh_{t-1}) = g(\mW \phi(x_t) + \mU \vh_{t-1}),
+\end{align*}
+where $g$ is an element-wise nonlinearity. 
+
+One of the most widely used nonlinearities is a hyperbolic tangent function
+$\tanh$. This is unlike the case in feedforward neural networks (multilayer
+perceptrons) where a (unbounded) piecewise linear function, such as a rectifier
+and maxout, has become standard. The main difference between logistic functions
+($\tanh$ and sigmoid function) and piecewise linear functions (rectifiers and
+maxout) is that the former is bounded from both above and below, while the
+latter is bounded only from below (or in some cases, not bounded at all
+\cite{he2015delving}.\footnote{
+    A parametric rectifier, or PReLU, is defined as
+    \begin{align*}
+        g(x) = \left\{ 
+            \begin{array}{l l}
+                x, & \text{if }x \geq 0 \\
+                ax, & \text{otherwise}
+            \end{array}
+            \right.,
+    \end{align*}
+    where $a$ is a parameter to be estimated together with all the other
+    parameters of a network.
+})
+
+This unbounded nature of piece-wise linear functions makes it difficult for them
+to be used in recurrent neural networks. Why is this so?
+
+Let us consider the simplest case of unbounded element-wise nonlinearity; a
+linear function:
+\begin{align*}
+    g(a) = a.
+\end{align*}
+%and sparse (i.e.
+%$\sum_{t=1}^l \II_{\phi(x_t) \neq 0} = c$, where $c=O(1)$.) 
+
+The hidden state after $l$ symbols is
+\begin{align*}
+    \vh_l =& \mU(\mU (\mU (\mU (\cdots) + \mW\phi(x_{l-3})) + \mW\phi(x_{l-2})) +
+    \mW\phi(x_{l-1})) + \mW\phi(x_l) \\
+    =& \left(\prod_{l'=1}^{l-1} \mU\right) \mW\phi(x_{1})
+    + \left(\prod_{l'=1}^{l-2} \mU\right) \mW\phi(x_{2})
+    + \cdots 
+    + \mU \mW \phi(x_{l-1}) 
+    + \mW \phi(x_l), \\
+    =& \sum_{t=1}^l \left( \prod_{l'=1}^{l-t} \mU\right) \mW\phi(x_t)
+\end{align*}
+where $l$ is the length of the input sequence.
+
+Let us assume that
+\begin{itemize}
+    \itemsep 0em
+    \item $\mU$ is full rank
+    \item The input sequence is sparse: $\sum_{t=1}^l \II_{\phi(x_t) \neq 0} =
+        c$, where $c=O(1)$
+    \item $\left[ \mW \phi(x) \right]_i \geq 0$ for all $i$
+\end{itemize}
+Then, we will approximate $\vh_l$ by
+\begin{align}
+    \label{eq:approx_h}
+    \vh_l = c \underbrace{\left( \prod_{l'=1}^{l-t'} \mU\right) 
+    \mW\phi(x_{t'})}_{(a)} + O(\epsilon),
+\end{align}
+where $x_{t'}$ is the last non-zero symbol in the input sequence, and
+$O(\epsilon)$ is an error in the approximation.
+
+Now, let's look at what happens to Eq.~\eqref{eq:approx_h} (a). First, the
+eigendecomposition of the matrix $\mU$:
+\begin{align*}
+    \mU = \mQ \mS \mQ^{\top},
+\end{align*}
+where $\mS$ is a diagonal matrix whose non-zero entries are eigenvalues.
+$\mL$ and $\mR$ are orthogonal matrices. Then
+\begin{align*}
+    \prod_{l'=1}^{l-t'} \mU = \mQ \mS^{l-t'} \mQ^{\top},
+\end{align*}
+and
+\begin{align*}
+    \left(\prod_{l'=1}^{l-t'} \mU\right) \mW\phi(x_{t'})
+= \diag(\mS^{l-t'}) \odot (\mQ \mQ^\top \mW\phi(x_{t'})),
+\end{align*}
+where $\odot$ is an element-wise product.
+
+What happens if the largest eigenvalue $e_{\max} = \max \diag(\mS)$ is larger
+than $1$, the norm of $\vh_l$ will diverge to infinity, i.e., $\|\vh_l\| \to
+\infty$. The rate of growth is exponentially with respect to  the length of the
+input sequence, meaning that even when the input sequence is not too long, the
+norm of the memory state grows quickly if $e_{\max}$ is reasonably larger than
+$1$. 
+
+This happens, because the nonlinearity $g$ is {\em unbounded}. If $g$ is bounded
+from both above and below, such as the case with $\tanh$, the norm of the memory
+state is also bounded. In the case of $\tanh:\RR \to \left[ -1, 1\right]$,
+\begin{align*}
+    \|\vh_l\|\leq \dim(\vh_l).
+\end{align*}
+
+This is one reason why a logistic function, such as $\tanh$ and $\sigmoid$, is
+most widely used with recurrent neural networks, compared to piecewise linear
+functions.\footnote{
+    However, it is not to say that piecewise linear functions are never used for
+    recurrent neural networks. See, for instance,
+    \cite{le2015simple,bengio2013advances}.
+} I will call this recurrent neural network with $\tanh$ as an element-wise
+nonlinear function a {\em simple recurrent neural network}. 
+
+\subsubsection{Backpropagation is Hard with Simple RNN}
+
+A very similar argument for using a bounded nonlinear function for recurrent
+neural networks works at the same time against the simple recurrent neural
+network as well. Unlike the previous section, here we look at the backward pass.
+
+
+
+
+
+
+
 
 
 
