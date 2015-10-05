@@ -1803,6 +1803,7 @@ general answer to them.
 %tasks. 
 
 \subsection{Recurrent Neural Networks}
+\label{sec:rnn}
 
 Instead, I will move on to describing how we can build a neural
 network\footnote{
@@ -2367,7 +2368,7 @@ where $l$ is the length of the input sequence.
 Let us assume that
 \begin{itemize}
     \itemsep 0em
-    \item $\mU$ is full rank
+    \item $\mU$ is a full rank matrix
     \item The input sequence is sparse: $\sum_{t=1}^l \II_{\phi(x_t) \neq 0} =
         c$, where $c=O(1)$
     \item $\left[ \mW \phi(x) \right]_i \geq 0$ for all $i$
@@ -2421,11 +2422,119 @@ functions.\footnote{
 } I will call this recurrent neural network with $\tanh$ as an element-wise
 nonlinear function a {\em simple recurrent neural network}. 
 
-\subsubsection{Backpropagation is Hard with Simple RNN}
+\subsubsection{Gated Recurrent Units: Simple Recurrent Neural Networks are {\em Unrealistic}}
 
-A very similar argument for using a bounded nonlinear function for recurrent
-neural networks works at the same time against the simple recurrent neural
-network as well. Unlike the previous section, here we look at the backward pass.
+Let us get back to the analogy we made in Sec.~\ref{sec:rnn}. We compared a
+recurrent neural network to how CPU works. Executing a recurrent function $f$ is
+equivalent to executing one of the instructions on CPU, and the memory state of
+the recurrent neural network is equivalent to the registers of the CPU. This
+analogy does sound plausible, except that it is not.
+
+In fact, how a simple recurrent neural network works is far from being similar
+to how CPU works. I am now talking about how they are implemented in practice,
+but rather I'm talking at the conceptual level. What is it at the conceptual
+level that makes the simple recurrent neural network unrealistic?
+
+An important observation we make about the simple recurrent neural network is
+that it {\em refreshes} the whole memory state at each time step. This is almost
+opposite to how the registers on a CPU are maintained. Each time an instruction
+is executed, the CPU does not clear up the whole registers and repopulate them.
+Rather, it works only on a small number of registers. All the other registers'
+values are stored as they were before the execution of the instruction.
+
+Let's try to write this procedure mathematically. Each time, based on the choice
+of instruction to be executed, a subset of the registers of a CPU, or a subset
+of the elements in the memory state of a recurrent neural network, is selected.
+This can be written down as a binary vector $\vu \in \left\{ 0, 1\right\}^{n_h}$:
+\begin{align*}
+    u_i = \left\{ 
+        \begin{array}{l l}
+            0, & \text{ if the register's value does not change} \\
+            1, & \text{ if the register's value will change}
+        \end{array}
+        \right.
+\end{align*}
+
+With this binary vector, which I will call an {\em update gate}, a new memory
+state or a new register value at time $t$ can be computed as a convex
+interpolation such that
+\begin{align*}
+    \vh_{t} = (1 - \vu) \odot \vh_{t-1} + \vu \odot \tilde{\vh}_t,
+\end{align*}
+where $\odot$ is as usual an element-wise multiplication. $\tilde{\vh}_t$
+denotes a new memory state or a new register value, after executing the
+instruction at time $t$.
+
+Another unrealistic point about the simple recurrent neural network is that each
+execution considers the whole registers. It is almost impossible to imagine
+designing an instruction on a CPU that requires to read the values of all the
+registers. Instead, what almost always happens is that each instruction will
+consider only a small subset of the registers, which again we can use a binary
+vector to represent. Let me call it a {\em reset gate} $\vr \in \left\{ 0,
+1\right\}^{n_h}$:
+\begin{align*}
+    r_i = \left\{ 
+        \begin{array}{l l}
+            0, & \text{ if the register's value will not be used} \\
+            1, & \text{ if the register's value will be used}
+        \end{array}
+        \right.
+\end{align*}
+
+This reset gate can be multiplied to the register values {\em before} being used
+by the instruction at time $t$.\footnote{
+    It is important to note that this is {\em not} resetting the actual values
+    of the registers, but only the input to the instruction/recursive function.
+} If we use a recursive function $f$ from Eq.~\eqref{eq:rnn_layer}, it means that
+\begin{align*} 
+    \tilde{\vh}_t = f(x_t, \vr \odot \vh_{t-1}) = g(\mW \phi(x_t) + \mU (\vr
+    \odot \vh_{t-1})).
+\end{align*}
+
+Now, let us put these two gates that are necessary to make the simple recurrent
+neural network more realistic into one piece. At each time step, the {\em
+candidate} memory state is computed based on a subset of the elements of the
+previous memory state:
+\begin{align*}
+    \tilde{\vh}_t = g(\mW \phi(x_t) + \mU (\vr \odot \vh_{t-1}))
+\end{align*}
+A new memory state is computed as a linear interpolation between the previous
+memory state and this candidate memory state using the update gate:
+\begin{align*}
+    \vh_t = (1 - \vu) \odot \vh_{t-1} + \vu \odot \tilde{\vh}_t
+\end{align*}
+See Fig.~\ref{fig:gru} for the graphical illustration.
+
+\begin{figure}[ht]
+    \centering
+    \begin{minipage}{0.50\textwidth}
+        \centering
+        \includegraphics[width=0.9\columnwidth]{figures/hidden_unit.pdf}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.47\textwidth}
+        \caption{
+            A graphical illustration of a gated recurrent
+            unit~\cite{Cho-et-al-EMNLP2014}.
+        }
+        \label{fig:gru}
+    \end{minipage}
+\end{figure}
+
+Now there remains a big question: {\em How are the update $\vu$ and reset $\vr$ gates
+computed?}
+
+
+
+
+
+
+
+%\subsubsection{Backpropagation is Hard with Simple RNN}
+%
+%A very similar argument for using a bounded nonlinear function for recurrent
+%neural networks works at the same time against the simple recurrent neural
+%network as well. Unlike the previous section, here we look at the backward pass.
 
 
 
@@ -2486,68 +2595,6 @@ network as well. Unlike the previous section, here we look at the backward pass.
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%\subsection{Why Deep Neural Networks?}
-%
-%\alert{TBD}
-%
-%
-%\subsection{History of Neural Network Architecture}
-%
-%It is quite controversial when deep learning, or in general neural network
-%research, began and how it has evolved over
-%years~\cite{schmidhuber2015deep,lecun2015deep}.\footnote{
-%    Also, see ``Critique of Paper by "Deep Learning Conspiracy" (Nature 521 p
-%    436)'' by Schmidhuber: 
-%    \url{https://plus.google.com/100849856540000067209/posts/9BDtGwCDL7D}.
-%}
-%Aside all these controversies, I will say that 
-%
-%
-%\subsection{Linear Regression to Multilayer Perceptron}
-%
-%\alert{TBD}
-%
-%\subsection{Learning as Optimization}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%\nocite{pesetsky1999linguistic}
 
 
 
