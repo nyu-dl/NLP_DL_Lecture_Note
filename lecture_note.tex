@@ -658,6 +658,8 @@ The iteration continues until a certain stopping criterion is met, which we will
 discuss shortly.
 
 \subsubsection{Stochastic Gradient Descent}
+\label{sec:sgd}
+
 This simple GD algorithm works surprisingly quite well, and it is a fundamental
 basis upon which many advanced optimization algorithms have been built. I will
 present a list of few of those advanced algorithms later on and discuss them
@@ -2902,8 +2904,32 @@ $\sigmoid$. Why? Because $\frac{1}{\lambda} > 1$ for almost everywhere.
 \paragraph{Exploding Gradient}
 
 Fortunately it turned out that the phenomenon of exploding gradient is quite
-easy to address. 
+easy to address. First, it is straightforward to detect whether the exploding
+gradient happened by inspecting the norm of the gradient fo the cost with
+respect to the parameters $\left\| \nabla_{\TT} \tilde{C} \right\|$. If the
+gradient's norm is larger than some predefined threhold $\tau > 0$, we can
+simply renormalize the norm of the gradient to be $\tau$. Otherwise, we leave it
+as it is.
 
+In mathematics,
+\begin{align*}
+    \tilde{\nabla} = 
+    \left\{
+        \begin{array}{l l}
+            \tau \frac{\nabla}{\|\nabla\|}, & \text{ if } \|\nabla\| > \tau \\
+            \nabla, & \text{ otherwise}
+        \end{array}
+    \right.,
+\end{align*}
+where we used the shorthand notiation $\nabla$ for $\nabla_{\TT} \tilde{C}$.
+$\tilde{\nabla}$ is a rescaled gradient update direction which will be used by
+the stochastic gradient descent (SGD) algorithm from Sec.~\ref{sec:sgd}. This
+algorithm is referred to as {\em gradient clipping}
+\cite{pascanu2013difficulty}.
+
+\paragraph{Vanishing Gradient}
+
+But, what about vanishing gradient?
 
 
 
