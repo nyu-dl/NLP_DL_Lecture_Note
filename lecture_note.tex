@@ -2576,6 +2576,7 @@ read \cite{greff2015lstm,jozefowicz2015empirical}.\footnote{
 \subsection{Why not Rectifiers?}
 
 \subsubsection{Rectifiers Explode}
+\label{sec:rect_explode}
 
 Let us go back to the {\em simple recurrent neural network} which uses the
 simple transformation layer from Eq.~\eqref{eq:rnn_layer}:
@@ -2679,7 +2680,7 @@ and
 where $\odot$ is an element-wise product.
 
 What happens if the largest eigenvalue $e_{\max} = \max \diag(\mS)$ is larger
-than $1$, the norm of $\vh_l$ will diverge to infinity, i.e., $\|\vh_l\| \to
+than $1$, the norm of $\vh_l$ will {\em explode}, i.e., $\|\vh_l\| \to
 \infty$. The rate of growth is exponentially with respect to  the length of the
 input sequence, meaning that even when the input sequence is not too long, the
 norm of the memory state grows quickly if $e_{\max}$ is reasonably larger than
@@ -2701,7 +2702,7 @@ functions.\footnote{
 } I will call this recurrent neural network with $\tanh$ as an element-wise
 nonlinear function a {\em simple recurrent neural network}. 
 
-\subsubsection{Is $\tanh$ a Curse or Blessing?}
+\subsubsection{Is $\tanh$ a Blessing?}
 
 Now, the argument in the previous section may sound like $\tanh$ and $\sigmoid$
 are {\em the} nonlinear functions that one should use. This seems quite
@@ -2792,21 +2793,118 @@ The derivatives of the widely used logistic functions are
     \sigma'(x) =& \sigma(x) (1 - \sigma(x)), \\
     \tanh'(x) =& 1 - \tanh^2(x),
 \end{align*}
-as described earlier in Sec.~\ref{sec:nonlinearities}. In both of these cases,
-the norm of this derivative is bounded by
-\begin{align*}
-    \left\| \frac{\partial \vh_{t}}{\partial \underline{\vh}_{t}} \right\|
-    \leq k n_h,
-\end{align*}
-where $k=\frac{1}{4}$ in the case of $\sigmoid$ and $k=1$ in the case of
-$\tanh$. This is because
-\begin{align*}
-    &\left| \sigma'(x) \right| \leq \frac{1}{4}, \\
-    &\left| \tanh'(x) \right| \leq 1,
-\end{align*}
-respectively.
+as described earlier in Sec.~\ref{sec:nonlinearities}. 
+Both of these functions' derivatives are {\em bounded}:
+\begin{align}
+    \label{eq:tanh_bound}
+    &0 < \sigma'(x) \leq 0.25, \\
+    &0 < \tanh'(x) \leq 1.
+\end{align}
 
-Next, consider Eq.~\eqref{eq:tderiv} (c). It 
+In the simplest case in which $g$ is a linear function (i.e., $x=g(x)$,) we do
+not even need to look at $\left\| \frac{\partial \vh_{t}}{\partial
+\underline{\vh}_{t}} \right\|$. We simply ignore all the $\frac{\partial
+\vh_t}{\partial \underline{\vh}_t}$ from Eq.~\eqref{eq:tderiv}.
+
+Next, consider Eq.~\eqref{eq:tderiv} (c). In this case of simple recurrent
+neural network, we notice that we have already learned how to compute this
+derivative earlier in Sec.~\ref{sec:example2}:
+\begin{align*}
+    \frac{\partial \underline{\vh}_{t+1}}{\partial \vh_{t}} = \mU
+\end{align*}
+
+From these two, we get
+\begin{align*}
+    \frac{\partial \vh_{l_1}}{\partial \vh_{l_0+1}} =&
+    \left(
+    \frac{\partial \vh_{l_1}}{\partial \underline{\vh}_{l_1}}
+    \mU
+\right)
+\left(
+    \frac{\partial \vh_{l_1-1}}{\partial \underline{\vh}_{l_1-1}}
+    \mU
+\right)
+    \cdots
+\left(
+    \frac{\partial \vh_{l_0+2}}{\partial \underline{\vh}_{l_0+2}}
+    \mU
+    \right) \\
+    =& \prod_{t=l_0+2}^{l_1} \left( \frac{\partial \vh_{t}}{\partial
+\underline{\vh}_{t}} \mU\right).
+\end{align*}
+
+Do you see how similar it looks like Eq.~\eqref{eq:approx_h}? If the recurrent
+activation function $f$ is linear, this whole term reduces to
+\begin{align*}
+    \frac{\partial \vh_{l_1}}{\partial \vh_{l_0+1}} = \mU^{l_1-l_0+1},
+\end{align*}
+which according to Sec.~\ref{sec:rect_explode}, will explode as $l\to\infty$ if
+\begin{align*}
+    e_{\max} > 1,
+\end{align*}
+where $e_{\max}$ is the largest eigenvalue of $\mU$. When $e_{\max} < 1$, it
+will {\em vanish}, i.e., $\|\frac{\partial \vh_{l_1}}{\partial \vh_{l_0+1}}\|
+\to 0$, exponentially fast.
+
+What if the recurrent activation function $f$ is {\em not} linear at all? Let's
+look at $\frac{\partial \vh_{t}}{\partial \underline{\vh}_{t}} \mU$ as 
+\begin{align*}
+    \frac{\partial \vh_{t}}{\partial \underline{\vh}_{t}} \mU = 
+        \underbrace{
+    \left[ 
+            \begin{array}{c c c c}
+                f_1' & 0 & \cdots & 0 \\
+                0 & f_2' & \cdots & 0 \\
+                \vdots & \vdots & \cdots & \vdots \\
+                0 & 0 & \cdots & f_{n_h}'
+            \end{array}
+    \right] 
+        }_{=\diag\left( \frac{\partial \vh_{t}}{\partial \underline{\vh}_{t}}\right)}
+    \left(\mQ \mS \mQ^{\top}\right),
+\end{align*}
+where we used the eigendecomposition of $\mU=\mQ \mS \mQ^{\top}$. This can be
+re-written into
+\begin{align*}
+    \frac{\partial \vh_{t}}{\partial \underline{\vh}_{t}} \mU = 
+    \mQ \left( \diag\left(\frac{\partial \vh_{t}}{\partial
+            \underline{\vh}_{t}}\right)
+    \odot \mS \right) \mQ^{\top}.
+\end{align*}
+This means that the eigenvalue of $\mU$ will be scaled by the derivative of the
+recurrent activation function at each timestep. In this case, we can bound the
+maximum eigenvalue of $\frac{\partial \vh_{t}}{\partial \underline{\vh}_{t}}
+\mU$ by
+\begin{align*}
+    e_{\max}^t \leq \lambda e_{\max},
+\end{align*}
+where $\lambda$ is the upperbound on $g'=\frac{\partial \vh_{t}}{\partial
+\underline{\vh}_{t}}$. See Eq.~\eqref{eq:tanh_bound} for the upperbounds of the
+sigmoid and hyperbolic tangent functions.
+
+In other words, if the largest eigenvalue of $\mU$ is larger than
+$\frac{1}{\lambda}$, it is {\em likely} that this temporal derivative of
+$\vh_{l_1}$ with respect to $\vh_{l_0+1}$ will {\em explode}, meaning that its
+norm will grow exponentially large. In the opposite case of $e_{\max} <
+\frac{1}{\lambda}$, the norm of the temporal derivative likely shrinks toward
+$0$. The former case is referred to as {\em exploding gradient}, and the latter
+{\em vanishing gradient}. These cases were studied already at the very early
+years of research in recurrent neural
+networks~\cite{bengio1994learning,hochreiter2001gradient}.
+
+Using $\tanh$ is a blessing in recurrent neural networks when running the
+network forward, as I described in the previous section. This is however not
+necessarily true in the case of backpropagating derivaties. Especially because, 
+there is a higher chance of vanishing gradient with $\tanh$, or even worse with
+$\sigmoid$. Why? Because $\frac{1}{\lambda} > 1$ for almost everywhere.
+
+\subsubsection{Are We Doomed?}
+
+\paragraph{Exploding Gradient}
+
+Fortunately it turned out that the phenomenon of exploding gradient is quite
+easy to address. 
+
+
 
 
 
