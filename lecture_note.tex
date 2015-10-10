@@ -1347,9 +1347,10 @@ Bernoulli conditional distribution $p(y|x)$:
     \mu = f(x) = \sigma(w \phi(x) + b).
 \end{align}
 In both of these equations, $\sigma$ is a sigmoid function:
-\begin{align*}
+\begin{align}
+    \label{eq:sigmoid}
     \sigma(x) = \frac{1}{1+\exp(-x)}.
-\end{align*}
+\end{align}
 
 We use the KL divergence to measure the distance between the true conditional
 distribution $p(y|x)$ and the predicted conditional distribution $\hat{p}(y|x)$.
@@ -2309,120 +2310,18 @@ the output sequence at each time step. This procedure is called {\em beam
 search}, and we will discuss more about this in a later lecture on neural
 machine translation.
 
+%\subsubsection{Variable-Length Output $y$: $|x|\neq|y|$}
+%
+%Now let us continue on to a much more interesting case of having a
+%variable-length output $y$ whose length differs from that of the input sequence
+%$x$. The most obvious, but important example is translation. Consider
+%translating from English to 
+%
+%\alert{TBD}
+
 \subsection{Gated Recurrent Units}
 
-\subsubsection{Simple Recurrent Units}
-
-So far, we have considered the simple transformation layer from
-Eq.~\eqref{eq:rnn_layer}:
-\begin{align*}
-    f(x_t, \vh_{t-1}) = g(\mW \phi(x_t) + \mU \vh_{t-1}),
-\end{align*}
-where $g$ is an element-wise nonlinearity. 
-
-One of the most widely used nonlinearities is a hyperbolic tangent function
-$\tanh$. This is unlike the case in feedforward neural networks (multilayer
-perceptrons) where a (unbounded) piecewise linear function, such as a rectifier
-and maxout, has become standard. The main difference between logistic functions
-($\tanh$ and sigmoid function) and piecewise linear functions (rectifiers and
-maxout) is that the former is bounded from both above and below, while the
-latter is bounded only from below (or in some cases, not bounded at all
-\cite{he2015delving}.\footnote{
-    A parametric rectifier, or PReLU, is defined as
-    \begin{align*}
-        g(x) = \left\{ 
-            \begin{array}{l l}
-                x, & \text{if }x \geq 0 \\
-                ax, & \text{otherwise}
-            \end{array}
-            \right.,
-    \end{align*}
-    where $a$ is a parameter to be estimated together with all the other
-    parameters of a network.
-})
-
-This unbounded nature of piece-wise linear functions makes it difficult for them
-to be used in recurrent neural networks. Why is this so?
-
-Let us consider the simplest case of unbounded element-wise nonlinearity; a
-linear function:
-\begin{align*}
-    g(a) = a.
-\end{align*}
-%and sparse (i.e.
-%$\sum_{t=1}^l \II_{\phi(x_t) \neq 0} = c$, where $c=O(1)$.) 
-
-The hidden state after $l$ symbols is
-\begin{align*}
-    \vh_l =& \mU(\mU (\mU (\mU (\cdots) + \mW\phi(x_{l-3})) + \mW\phi(x_{l-2})) +
-    \mW\phi(x_{l-1})) + \mW\phi(x_l) \\
-    =& \left(\prod_{l'=1}^{l-1} \mU\right) \mW\phi(x_{1})
-    + \left(\prod_{l'=1}^{l-2} \mU\right) \mW\phi(x_{2})
-    + \cdots 
-    + \mU \mW \phi(x_{l-1}) 
-    + \mW \phi(x_l), \\
-    =& \sum_{t=1}^l \left( \prod_{l'=1}^{l-t} \mU\right) \mW\phi(x_t)
-\end{align*}
-where $l$ is the length of the input sequence.
-
-Let us assume that
-\begin{itemize}
-    \itemsep 0em
-    \item $\mU$ is a full rank matrix
-    \item The input sequence is sparse: $\sum_{t=1}^l \II_{\phi(x_t) \neq 0} =
-        c$, where $c=O(1)$
-    \item $\left[ \mW \phi(x) \right]_i \geq 0$ for all $i$
-\end{itemize}
-Then, we will approximate $\vh_l$ by
-\begin{align}
-    \label{eq:approx_h}
-    \vh_l = c \underbrace{\left( \prod_{l'=1}^{l-t'} \mU\right) 
-    \mW\phi(x_{t'})}_{(a)} + O(\epsilon),
-\end{align}
-where $x_{t'}$ is the last non-zero symbol in the input sequence, and
-$O(\epsilon)$ is an error in the approximation.
-
-Now, let's look at what happens to Eq.~\eqref{eq:approx_h} (a). First, the
-eigendecomposition of the matrix $\mU$:
-\begin{align*}
-    \mU = \mQ \mS \mQ^{\top},
-\end{align*}
-where $\mS$ is a diagonal matrix whose non-zero entries are eigenvalues.
-$\mL$ and $\mR$ are orthogonal matrices. Then
-\begin{align*}
-    \prod_{l'=1}^{l-t'} \mU = \mQ \mS^{l-t'} \mQ^{\top},
-\end{align*}
-and
-\begin{align*}
-    \left(\prod_{l'=1}^{l-t'} \mU\right) \mW\phi(x_{t'})
-= \diag(\mS^{l-t'}) \odot (\mQ \mQ^\top \mW\phi(x_{t'})),
-\end{align*}
-where $\odot$ is an element-wise product.
-
-What happens if the largest eigenvalue $e_{\max} = \max \diag(\mS)$ is larger
-than $1$, the norm of $\vh_l$ will diverge to infinity, i.e., $\|\vh_l\| \to
-\infty$. The rate of growth is exponentially with respect to  the length of the
-input sequence, meaning that even when the input sequence is not too long, the
-norm of the memory state grows quickly if $e_{\max}$ is reasonably larger than
-$1$. 
-
-This happens, because the nonlinearity $g$ is {\em unbounded}. If $g$ is bounded
-from both above and below, such as the case with $\tanh$, the norm of the memory
-state is also bounded. In the case of $\tanh:\RR \to \left[ -1, 1\right]$,
-\begin{align*}
-    \|\vh_l\|\leq \dim(\vh_l).
-\end{align*}
-
-This is one reason why a logistic function, such as $\tanh$ and $\sigmoid$, is
-most widely used with recurrent neural networks, compared to piecewise linear
-functions.\footnote{
-    However, it is not to say that piecewise linear functions are never used for
-    recurrent neural networks. See, for instance,
-    \cite{le2015simple,bengio2013advances}.
-} I will call this recurrent neural network with $\tanh$ as an element-wise
-nonlinear function a {\em simple recurrent neural network}. 
-
-\subsubsection{Gated Recurrent Units: Simple Recurrent Neural Networks are {\em Unrealistic}}
+\subsubsection{Making Simple Recurrent Neural Networks {\em Realistic}}
 
 Let us get back to the analogy we made in Sec.~\ref{sec:rnn}. We compared a
 recurrent neural network to how CPU works. Executing a recurrent function $f$ is
@@ -2458,9 +2357,10 @@ This can be written down as a binary vector $\vu \in \left\{ 0, 1\right\}^{n_h}$
 With this binary vector, which I will call an {\em update gate}, a new memory
 state or a new register value at time $t$ can be computed as a convex
 interpolation such that
-\begin{align*}
+\begin{align}
+    \label{eq:gru_leaky}
     \vh_{t} = (1 - \vu) \odot \vh_{t-1} + \vu \odot \tilde{\vh}_t,
-\end{align*}
+\end{align}
 where $\odot$ is as usual an element-wise multiplication. $\tilde{\vh}_t$
 denotes a new memory state or a new register value, after executing the
 instruction at time $t$.
@@ -2486,10 +2386,11 @@ by the instruction at time $t$.\footnote{
     It is important to note that this is {\em not} resetting the actual values
     of the registers, but only the input to the instruction/recursive function.
 } If we use a recursive function $f$ from Eq.~\eqref{eq:rnn_layer}, it means that
-\begin{align*} 
+\begin{align} 
+    \label{eq:gru_cand}
     \tilde{\vh}_t = f(x_t, \vr \odot \vh_{t-1}) = g(\mW \phi(x_t) + \mU (\vr
     \odot \vh_{t-1})).
-\end{align*}
+\end{align}
 
 Now, let us put these two gates that are necessary to make the simple recurrent
 neural network more realistic into one piece. At each time step, the {\em
@@ -2521,8 +2422,404 @@ See Fig.~\ref{fig:gru} for the graphical illustration.
     \end{minipage}
 \end{figure}
 
-Now there remains a big question: {\em How are the update $\vu$ and reset $\vr$ gates
-computed?}
+\subsubsection{Gated Recurrent Units}
+
+Now here goes a big question: {\em How are the update $\vu$ and reset $\vr$
+gates computed?}
+
+If we stick to our analogy to the CPU, those gates must be pre-configured {\em
+per instruction}. Those binary gates are dependent on the instruction. Again
+however, this is not what we want to do in our case. There is no set of
+predefined instructions, but the execution of any instruction corresponds to
+computing a recurrent {\em function} based on the input symbol and the memory
+state from the previous time step (see, e.g., Eq.~\eqref{eq:rnn_layer}.)
+Similarly to this what we want with the update and reset gates is that they are
+computed by a function which depends on the input symbol and the previous memory
+state.
+
+This sounds like quite straightforward, except that we defined the gates to be
+binary. This means that whatever the function we use to compute those gates, the
+function will be a discontinuous function with zero derivative almost
+everywhere, except at the point where a sharp transition from $0$ to $1$
+happens. We discussed the consequence of having an activation function with zero
+derivative almost everywhere in Sec.~\ref{sec:nonlinearities}, and the
+conclusion was that it becomes very difficult to compute the gradient of the
+cost function efficiently {\em and} exactly with these discrete activation
+functions in a computational graph.
+
+One simple solution which turned out to be extremely efficient is to consider
+those gates not as binary vectors but as real-valued coefficient vectors. In
+other words, we redefine the update and reset gates to be
+\begin{align*}
+    \vu \in \left[ 0, 1 \right]^{n_h}, \vr \in \left[ 0, 1\right]^{n_h}.
+\end{align*}
+This approach makes these gates {\em leaky} in the sense that they always allow
+some leak of information through the gate.
+
+In the case of the reset gate, rather than making a hard decision on which
+subset of the registers, or the elements of the memory state, will be used, it
+now decides {\em how much} information from the previous memory state will be
+used. The update gate on the other hand now controls how much content in the
+memory state will be replaced, which is equivalent to saying that it controls
+how much information will be {\em kept} from the previous memory state.
+
+Under this definition we can simply use a sigmoid function from
+Eq.~\eqref{eq:sigmoid} to compute these gates:
+\begin{align*}
+    \vr =& \sigmoid(\mW_r \phi(x_t) + \mU_r \vh_{t-1}), \\
+    \vu =& \sigmoid(\mW_u \phi(x_t) + \mU_u (\vr \odot \vh_{t-1})), \\
+\end{align*}
+where $\mW_r$, $\mU_r$, $\mW_u$ and $\mU_u$ are the additional
+parameters.\footnote{
+    Note that this is not {\em the} formulation available for computing the
+    reset and update gates. For instance, one can use the following definitions
+    of the reset and update gates:
+    \begin{align*}
+        \vr =& \sigmoid(\mW_r \phi(x_t) + \mU_r \vh_{t-1}), \\
+        \vu =& \sigmoid(\mW_u \phi(x_t) + \mU_u \vh_{t-1}), \\
+    \end{align*}
+    which is more parallelizable than the original formulation from
+    \cite{Cho-et-al-EMNLP2014}. This is because there is no more direct
+    dependency between $\vr$ and $\vu$, which makes it possible to compute them
+    in parallel.
+}
+Since
+the sigmoid function is differentiable everywhere, we can use the
+backpropagation algorithm (see Sec.~\ref{sec:autodiff}) to compute the
+derivatives of the cost function with respect to these parameters and estimate
+them together with all the other parameters.
+
+We call this recurrent activation function with the reset and update gates a
+{\em gated recurrent unit} (GRU), and a recurrent neural network having this GRU
+as a gated recurrent network.
+
+\paragraph{Long Short-Term Memory}
+
+The gated recurrent unit (GRU) is highly motivated by a much earlier work on
+long short-term memory (LSTM) units \cite{hochreiter1997long}.\footnote{
+    Okay, let me confess here. I was not well aware of long short-term memory
+    when I was designing the gated recurrent unit together with Yoshua Bengio
+    and Caglar Gulcehre in 2014.
+} The LSTM was proposed in 1997 with the goal of building a recurrent neural
+network that can learn long-term dependencies across many number of timsteps,
+which was deemed to be difficult to do so with a simple recurrent neural
+network. 
+
+Unlike the element-wise nonlinearity of the simple recurrent neural network and
+the gated recurrent unit, the LSTM explicitly separates the memory state $\vc_t$
+and the output $\vh_t$. The output is a small subset of the {\em hidden} memory
+state, and only this subset of the memory state is visibly {\em exposed} to any
+other part of the whole network. 
+
+How does a recurrent neural network with LSTM units decide how much of the
+memory state it will reveal?  As perhaps obvious at this point, the LSTM uses a
+so-called {\em output} gate $\vo$ to achieve this goal. Similarly to the reset
+and update gates of the GRU, the output gate is computed by
+\begin{align*}
+    \vo = \sigmoid(\mW_o \phi(x_t) + \mU_o \vh_{t-1}).
+\end{align*}
+This output vector is multiplied to the memory state $\vc_t$ point-wise to
+result in the output:
+\begin{align*}
+    \vh_t = \vo \odot \tanh(\vc_t).
+\end{align*}
+
+Updating the memory state $\vc_t$ closely resembles how it is updated in the GRU
+(see Eq.~\eqref{eq:gru_leaky}.) A major difference is that instead of using a
+single update gate, the LSTM uses two gates, forget and input gates, such that
+\begin{align*}
+    \vc_t = \vf \odot \vc_{t-1} + \vi \odot \tilde{\vc}_t,
+\end{align*}
+where $\vf \in \RR^{n_h}$, $\vi \in \RR^{n_h}$ and $\tilde{\vc}_t$ are the
+forget gate, input gate and the candidate memory state, respectively.
+
+The roles of those two gates are quite clear from their names. The forget gate
+decides how much information from the memory state will be {\em forgotten},
+while the input gate controls how much informationa about the new input
+(consisting of the input symbol and the previous output) will be {\em inputted}
+to the memory. They are computed by
+\begin{align}
+    \label{eq:lstm_forget}
+    \vf =& \sigmoid(\mW_f \phi(x_t) + \mU_f \vh_{t-1}), 
+    \\
+    \vi =& \sigmoid(\mW_i \phi(x_t) + \mU_i \vh_{t-1}).
+    \nonumber
+\end{align}
+
+The candidate memory state is computed similarly to how it was done with the GRU
+in Eq.~\eqref{eq:gru_cand}:
+\begin{align*}
+    \tilde{\vc}_t = g(\mW_c \phi(x_t) + \mU_c \vh_{t-1}),
+\end{align*}
+where $g$ is often an element-wise $\tanh$.
+
+All the additional parameters specific to the
+LSTM--$\mW_o,\mU_o,\mW_f,\mU_f,\mW_i,\mU_i,\mW_c$ and $\mU_c$-- are estimated
+together with all the other parameters. Again, every function inside the LSTM is
+differentiable everywhere, and we can use the backpropagation algorithm to
+efficient compute the gradient of the cost function with respect to all the
+parameters.
+
+Although I have described one formulation of the long short-term memory unit
+here, there are many other variants proposed over more than a decade since it
+was first proposed. For instance, the forget gate in Eq.~\eqref{eq:lstm_forget}
+was not present in the original work \cite{hochreiter1997long} but was fixed to
+$1$. Gers et al. \cite{gers2000learning} proposed the forget gate few years
+after the LSTM was originally proposed, and it turned out to be one of the most
+crucial component in the LSTM. For more variants of the LSTM, I suggest you to
+read \cite{greff2015lstm,jozefowicz2015empirical}.\footnote{
+    Interestingly, based on the observation in \cite{jozefowicz2015empirical},
+    it seems like the plain LSTM with a forget gate and the GRU seem to be close
+    to the optimal gated unit we can find. 
+}
+
+\subsection{Why not Rectifiers?}
+
+\subsubsection{Rectifiers Explode}
+
+Let us go back to the {\em simple recurrent neural network} which uses the
+simple transformation layer from Eq.~\eqref{eq:rnn_layer}:
+\begin{align*}
+    f(x_t, \vh_{t-1}) = g(\mW \phi(x_t) + \mU \vh_{t-1}),
+\end{align*}
+where $g$ is an element-wise nonlinearity. 
+
+One of the most widely used nonlinearities is a hyperbolic tangent function
+$\tanh$. This is unlike the case in feedforward neural networks (multilayer
+perceptrons) where a (unbounded) piecewise linear function, such as a rectifier
+and maxout, has become standard. In the case of feedforward neural networks, you
+can safely assume that everyone uses some kind of piecewise linear function as
+an activation function in the network. This has become pretty much standard
+since Krizhevsky et al. \cite{krizhevsky2012imagenet} shocked the (computer
+vision) research community by outperforming all the more traditional computer
+vision teams in the ImageNet Large Scale Visual Recognition Challenge
+2012.\footnote{
+    \url{http://image-net.org/challenges/LSVRC/2012/results.html}
+}
+
+The main difference between logistic functions
+($\tanh$ and sigmoid function) and piecewise linear functions (rectifiers and
+maxout) is that the former is bounded from both above and below, while the
+latter is bounded only from below (or in some cases, not bounded at all
+\cite{he2015delving}.\footnote{
+    A parametric rectifier, or PReLU, is defined as
+    \begin{align*}
+        g(x) = \left\{ 
+            \begin{array}{l l}
+                x, & \text{if }x \geq 0 \\
+                ax, & \text{otherwise}
+            \end{array}
+            \right.,
+    \end{align*}
+    where $a$ is a parameter to be estimated together with all the other
+    parameters of a network.
+})
+
+This unbounded nature of piece-wise linear functions makes it difficult for them
+to be used in recurrent neural networks. Why is this so?
+
+Let us consider the simplest case of unbounded element-wise nonlinearity; a
+linear function:
+\begin{align*}
+    g(a) = a.
+\end{align*}
+%and sparse (i.e.
+%$\sum_{t=1}^l \II_{\phi(x_t) \neq 0} = c$, where $c=O(1)$.) 
+
+The hidden state after $l$ symbols is
+\begin{align}
+    \vh_l =& \mU(\mU (\mU (\mU (\cdots) + \mW\phi(x_{l-3})) + \mW\phi(x_{l-2})) +
+    \mW\phi(x_{l-1})) + \mW\phi(x_l) 
+    \nonumber
+    \\
+    =& \left(\prod_{l'=1}^{l-1} \mU\right) \mW\phi(x_{1})
+    + \left(\prod_{l'=1}^{l-2} \mU\right) \mW\phi(x_{2})
+    + \cdots 
+    + \mU \mW \phi(x_{l-1}) 
+    + \mW \phi(x_l), 
+    \nonumber
+    \\
+    \label{eq:rnn_forward}
+    =& \sum_{t=1}^l \left( \prod_{l'=1}^{l-t} \mU\right) \mW\phi(x_t)
+\end{align}
+where $l$ is the length of the input sequence.
+
+Let us assume that
+\begin{itemize}
+    \itemsep 0em
+    \item $\mU$ is a full rank matrix
+    \item The input sequence is sparse: $\sum_{t=1}^l \II_{\phi(x_t) \neq 0} =
+        c$, where $c=O(1)$
+    \item $\left[ \mW \phi(x) \right]_i \geq 0$ for all $i$
+\end{itemize}
+Then, we will approximate $\vh_l$ by
+\begin{align}
+    \label{eq:approx_h}
+    \vh_l = c \underbrace{\left( \prod_{l'=1}^{l-t'} \mU\right) 
+    \mW\phi(x_{t'})}_{(a)} + O(1),
+\end{align}
+where $x_{t'}$ is the last non-zero symbol in the input sequence, and
+$O(1)$ is an error in the approximation.
+
+Now, let's look at what happens to Eq.~\eqref{eq:approx_h} (a). First, the
+eigendecomposition of the matrix $\mU$:
+\begin{align*}
+    \mU = \mQ \mS \mQ^{\top},
+\end{align*}
+where $\mS$ is a diagonal matrix whose non-zero entries are eigenvalues.
+$\mQ$ is an orthogonal matrix. Then
+\begin{align*}
+    \prod_{l'=1}^{l-t'} \mU = \mQ \mS^{l-t'} \mQ^{\top},
+\end{align*}
+and
+\begin{align*}
+    \left(\prod_{l'=1}^{l-t'} \mU\right) \mW\phi(x_{t'})
+= \diag(\mS^{l-t'}) \odot (\mQ \mQ^\top \mW\phi(x_{t'})),
+\end{align*}
+where $\odot$ is an element-wise product.
+
+What happens if the largest eigenvalue $e_{\max} = \max \diag(\mS)$ is larger
+than $1$, the norm of $\vh_l$ will diverge to infinity, i.e., $\|\vh_l\| \to
+\infty$. The rate of growth is exponentially with respect to  the length of the
+input sequence, meaning that even when the input sequence is not too long, the
+norm of the memory state grows quickly if $e_{\max}$ is reasonably larger than
+$1$. 
+
+This happens, because the nonlinearity $g$ is {\em unbounded}. If $g$ is bounded
+from both above and below, such as the case with $\tanh$, the norm of the memory
+state is also bounded. In the case of $\tanh:\RR \to \left[ -1, 1\right]$,
+\begin{align*}
+    \|\vh_l\|\leq \dim(\vh_l).
+\end{align*}
+
+This is one reason why a logistic function, such as $\tanh$ and $\sigmoid$, is
+most widely used with recurrent neural networks, compared to piecewise linear
+functions.\footnote{
+    However, it is not to say that piecewise linear functions are never used for
+    recurrent neural networks. See, for instance,
+    \cite{le2015simple,bengio2013advances}.
+} I will call this recurrent neural network with $\tanh$ as an element-wise
+nonlinear function a {\em simple recurrent neural network}. 
+
+\subsubsection{Is $\tanh$ a Curse or Blessing?}
+
+Now, the argument in the previous section may sound like $\tanh$ and $\sigmoid$
+are {\em the} nonlinear functions that one should use. This seems quite
+convincing for recurrent neural networks, and perhaps so for feedforward neural
+networks as well, if the network is {\em deep} enough.
+
+Here let me try to convince you otherwise by looking at how the norm of
+backpropagated derivative behaves. Again, this is much easier to see if we
+assume the following:
+\begin{itemize}
+    \itemsep 0em
+    \item $\mU$ is a full rank matrix
+    \item The input sequence is sparse: $\sum_{t=1}^l \II_{\phi(x_t) \neq 0} =
+        c$, where $c=O(1)$
+\end{itemize}
+
+Similarly to Eq.~\eqref{eq:rnn_forward}, let us consider a forward computational
+path until $\vh_l$, however without assuming a linear activation function:
+\begin{align*}
+    \vh_l = g\left(\mU g\left(\mU g\left(\mU g\left(\mU \left( \cdots \right)
+                + \mW \phi\left(x_{l-3}\right)\right) + \mW
+        \phi\left(x_{l-2}\right)\right)+\mW \phi\left(x_{l-1}\right)\right) +
+    \mW\phi\left(x_{l}\right)\right).
+\end{align*}
+We will consider a subsequence of this process, in which all the input symbols
+are $0$ except for the first symbol:
+\begin{align*}
+    \vh_{l_1} = g\left(\mU g\left(\mU \left( \cdots g\left(\mU \vh_{l_0} + \mW
+    \phi\left(x_{l_0+1}\right)\right)\right)\right)\right).
+\end{align*}
+It should be noted that as $l$ approaches
+infinity, there will be at least one such subsequence whose length also
+approaches infinity due to the sparsity of the input we assumed.
+
+From this equation, let's look at 
+\begin{align*}
+    \frac{\partial \vh_{l_1}}{\partial \phi\left(x_{l_0+1}\right)}.
+\end{align*}
+This measures the effect of the $(l_0+1)$-th input symbol $x_{l_0+1}$ on the
+$l_1$-th memory state of the simple recurrent neural network. This is also the
+crucial derivative that needs to be computed in order to compute the gradient of
+the cost function using the automated backpropagation procedure described in
+Sec.~\ref{sec:autodiff}.
+
+This derivative can be rewritten as
+\begin{align*}
+    \frac{\partial \vh_{l_1}}{\partial \phi\left(x_{l_0+1}\right)} = 
+    \underbrace{\frac{\partial \vh_{l_1}}{\partial
+    \vh_{l_0+1}}}_{(a)}
+    \frac{\partial \vh_{l_0+1}}{\partial \underline{\vh}_{l_0+1}}
+    \frac{\partial \underline{\vh}_{l_0+1}}{\partial
+    \phi\left(x_{l_0+1}\right)}.
+\end{align*}
+Among these three terms in the left hand side, we will focus on the first one
+(a) which can be further expanded as
+\begin{align}
+    \label{eq:tderiv}
+    \frac{\partial \vh_{l_1}}{\partial \vh_{l_0+1}} = 
+    \left(
+    \underbrace{\frac{\partial \vh_{l_1}}{\partial \underline{\vh}_{l_1}}}_{(b)}
+    \underbrace{\frac{\partial \underline{\vh}_{l_1}}{\partial \vh_{l_1-1}}}_{(c)}
+\right)
+\left(
+    \underbrace{\frac{\partial \vh_{l_1-1}}{\partial
+    \underline{\vh}_{l_1-1}}}_{(b)}
+        \underbrace{\frac{\partial \underline{\vh}_{l_1-1}}{\partial
+        \vh_{l_1-2}}}_{(c)}
+\right)
+    \cdots
+\left(
+    \underbrace{\frac{\partial \vh_{l_0+2}}{\partial
+    \underline{\vh}_{l_0+2}}}_{(b)}
+        \underbrace{\frac{\partial \underline{\vh}_{l_0+2}}{\partial
+        \vh_{l_0+1}}}_{(c)}
+    \right).
+\end{align}
+
+Because this is a recurrent neural network, we can see that the analytical forms
+for the terms grouped by the parentheses in the above equation are identical
+except for the subscripts indicating the time index. In other words, we can
+simply only on one of those groups, and the resulting analytical form will be
+generally applicable to all the other groups.
+
+First, we look at Eq.~\eqref{eq:tderiv} (b), which is nothing but a derivative
+of a nonlinear activation function used in this simple recurrent neural network.
+The derivatives of the widely used logistic functions are 
+\begin{align*}
+    \sigma'(x) =& \sigma(x) (1 - \sigma(x)), \\
+    \tanh'(x) =& 1 - \tanh^2(x),
+\end{align*}
+as described earlier in Sec.~\ref{sec:nonlinearities}. In both of these cases,
+the norm of this derivative is bounded by
+\begin{align*}
+    \left\| \frac{\partial \vh_{t}}{\partial \underline{\vh}_{t}} \right\|
+    \leq k n_h,
+\end{align*}
+where $k=\frac{1}{4}$ in the case of $\sigmoid$ and $k=1$ in the case of
+$\tanh$. This is because
+\begin{align*}
+    &\left| \sigma'(x) \right| \leq \frac{1}{4}, \\
+    &\left| \tanh'(x) \right| \leq 1,
+\end{align*}
+respectively.
+
+Next, consider Eq.~\eqref{eq:tderiv} (c). It 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
