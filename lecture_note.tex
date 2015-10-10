@@ -2123,6 +2123,7 @@ lab session.\footnote{
 
 
 \subsubsection{Variable-Length Output $y$: $|x|=|y|$}
+\label{sec:rnn_x_y}
 
 Let's generalize what we have discussed so far to recurrent neural networks
 here. Instead of a fixed-size output $y$, we will assume that the goal is to
@@ -2705,6 +2706,7 @@ functions.\footnote{
 nonlinear function a {\em simple recurrent neural network}. 
 
 \subsubsection{Is $\tanh$ a Blessing?}
+\label{sec:vanishing_grad}
 
 Now, the argument in the previous section may sound like $\tanh$ and $\sigmoid$
 are {\em the} nonlinear functions that one should use. This seems quite
@@ -2798,8 +2800,9 @@ The derivatives of the widely used logistic functions are
 as described earlier in Sec.~\ref{sec:nonlinearities}. 
 Both of these functions' derivatives are {\em bounded}:
 \begin{align}
-    \label{eq:tanh_bound}
+    \label{eq:sigmoid_bound}
     &0 < \sigma'(x) \leq 0.25, \\
+    \label{eq:tanh_bound}
     &0 < \tanh'(x) \leq 1.
 \end{align}
 
@@ -2830,7 +2833,8 @@ From these two, we get
 \left(
     \frac{\partial \vh_{l_0+2}}{\partial \underline{\vh}_{l_0+2}}
     \mU
-    \right) \\
+    \right) 
+    \\
     =& \prod_{t=l_0+2}^{l_1} \left( \frac{\partial \vh_{t}}{\partial
 \underline{\vh}_{t}} \mU\right).
 \end{align*}
@@ -2880,8 +2884,8 @@ maximum eigenvalue of $\frac{\partial \vh_{t}}{\partial \underline{\vh}_{t}}
     e_{\max}^t \leq \lambda e_{\max},
 \end{align*}
 where $\lambda$ is the upperbound on $g'=\frac{\partial \vh_{t}}{\partial
-\underline{\vh}_{t}}$. See Eq.~\eqref{eq:tanh_bound} for the upperbounds of the
-sigmoid and hyperbolic tangent functions.
+\underline{\vh}_{t}}$. See Eqs.~\eqref{eq:sigmoid_bound}--\eqref{eq:tanh_bound}
+for the upperbounds of the sigmoid and hyperbolic tangent functions.
 
 In other words, if the largest eigenvalue of $\mU$ is larger than
 $\frac{1}{\lambda}$, it is {\em likely} that this temporal derivative of
@@ -2900,6 +2904,7 @@ there is a higher chance of vanishing gradient with $\tanh$, or even worse with
 $\sigmoid$. Why? Because $\frac{1}{\lambda} > 1$ for almost everywhere.
 
 \subsubsection{Are We Doomed?}
+\label{sec:rnn_vanish_grad}
 
 \paragraph{Exploding Gradient}
 
@@ -2929,7 +2934,190 @@ algorithm is referred to as {\em gradient clipping}
 
 \paragraph{Vanishing Gradient}
 
-But, what about vanishing gradient?
+What about vanishing gradient? But, first, what does vanishing gradient mean? We
+need to understand the meaning of this phenomenon in order to tell whether this
+is a problem at all from the beginning.
+
+Let us consider a case the variable-length output where $|x|=|y|$ from
+Sec.~\ref{sec:rnn_x_y}. Let's assume that there exists a clear dependency
+between the output label $y_t$ and the input symbol $x_{t'}$, where $t' \ll t$.
+This means that the empirical cost will decrease when the weights are adjusted
+such that 
+\[
+    \log p(y_t=y_t^*| \ldots, \phi(x_{t'}), \ldots)
+\]
+is maximized, where $y_t^*$ is the ground truth output label at time $t$. The
+value of $\phi(x_{t'})$ has great influence on the $t$-th output $y_t$, and the
+influence can be measured by 
+\[ 
+    \frac{\partial \log p(y_t=y_t^*| \ldots)}{\partial \phi(x_{t'})}.
+\]
+
+Instead of exactly computing $\frac{\partial \log p(y_t=y_t^*| \ldots)}{\partial
+\phi(x_{t'})}$, we can approximate it by the finite difference method. Let
+$\epsilon \in \RR^{\dim(\phi(x_{t'}))}$ be a vector of which each element is a
+very small real value ($\epsilon \approx 0$.) Then,
+\begin{align*}
+    \frac{\partial \log p(y_t=y_t^*|\ldots)}{\partial \phi(x_{t'})} 
+    = \lim_{\epsilon \to 0}& \left(\log p(y_t=y_t^*|\ldots,
+    \phi(x_{t'})+\epsilon, \ldots)
+    \right.
+    \\
+&- \left. \log p(y_t=y_t^*|\ldots, \phi(x_{t'}), \ldots, )\right) \oslash \epsilon,
+\end{align*}
+where $\oslash$ is an element-wise division.  This shows that $\frac{\partial
+\log p(y_t=y_t^*|\ldots)}{\partial \phi(x_{t'})}$ computes the difference in the
+$t$-th output probability with respect to the change in the value of the $t'$-th
+input. 
+
+In other words $\frac{\partial \log p(y_t=y_t^*|\ldots)}{\partial \phi(x_{t'})}$
+directly reflects the degree to which the $t$-th output $y_t$ {\em depends} on
+the $t'$-th input $x_{t'}$, {\em according to the network}.  To put it in
+another way, $\frac{\partial \log p(y_t=y_t^*|\ldots)}{\partial\phi(x_{t'})}$
+reflects how much dependency the {\em recurrent neural network has captured the
+dependency between $y_t$ and $x_{t'}$}.
+
+Let's rewrite 
+\begin{align*}
+    \frac{\partial \log p(y_t=y_t^*|\ldots)}{\partial \phi(x_{t'})} 
+    = \frac{\partial \log p(y_t=y_t^*|\ldots)}{\partial \vh_t}
+    \underbrace{
+        \frac{\partial \vh_t}{\partial \vh_{t-1}} \cdots
+        \frac{\partial \vh_{t'+1}}{\partial \vh_{t'+1}} 
+    }_{(a)}
+    \frac{\partial \vh_{t'}}{\partial \phi(x_t)}.
+\end{align*}
+The terms marked with (a) looks exactly identical to Eq.~\eqref{eq:tderiv}. We
+have already seen that this term can easily {\em vanish} toward zero with a high
+probability (see Sec.~\ref{sec:vanishing_grad}.)
+
+This means that the recurrent neural network is unlikely to capture this
+dependency. This is especially true when the (temporal) distance between the
+output and input, i.e., $|t - t'| \gg 0$.
+
+The biggest issue with this vanishing behaviour is that there is no
+straightforward way to avoid it. We cannot tell whether $\frac{\partial \log
+p(y_t=y_t^*|\ldots)}{\partial \phi(x_{t'})} \approx 0$ is due to the lack of
+this dependency in the true, underlying function or due to the wrong
+configuration (parameter setting) of the recurrent neural network. If we are
+certain that there are indeed these long-term dependencies, we may
+simultaneously minimize the following auxiliary term together with the cost
+function:
+\begin{align*}
+    \sum_{t=1}^T \left( 1 - \frac{\left\| 
+            \frac{\partial \tilde{C}}{\partial \vh_{t+1}}
+            \frac{\partial \vh_{t+1}}{\partial \vh_t}
+    \right\|}{\left\| 
+        \frac{\partial \tilde{C}}{\partial \vh_{t+1}}
+\right\|} \right)^2.
+\end{align*}
+This term, which was introduced in \cite{pascanu2013difficulty}, is minimized
+when the norm of the derivative does not change as it is being backpropagated,
+effectively forcing the gradient {\em not} to vanish.
+
+This term however was found to help significantly only when the target task, or
+the underlying function, does indeed exhibit long-term dependencies. How can we
+know in advance? Pascanu et al. \cite{pascanu2013difficulty} showed this with
+the well-known toy tasks which were specifically designed to exhibit long-term
+dependencies \cite{hochreiter2001gradient}.
+
+
+\subsubsection{Gated Recurrent Units Address Vanishing Gradient}
+
+Will the same problems of vanishing gradient happen with the gated recurrent
+units (GRU) or the long short-term memory units (LSTM)? Let us write the memory 
+state at time $t$:
+\begin{align*}
+    \vh_t =& \vu_t \odot \tilde{\vh}_t + 
+    (1 - \vu_t) \odot \left(
+        \vu_{t-1} \odot \tilde{\vh}_{t-1} + 
+        (1 - \vu_{t-1}) \odot \left(
+            \vu_{t-2} \odot \tilde{\vh}_{t-2} + 
+            (1 - \vu_{t-2}) \odot \left(
+                \cdots
+            \right)
+        \right)
+    \right) 
+    \\
+    =& \vu_t \odot \tilde{\vh}_t +
+    (1-\vu_t) \odot \vu_{t-1} \odot \tilde{\vh}_{t-1} +
+    (1-\vu_t) \odot (1-\vu_{t-1}) \odot \vu_{t-2} \odot \tilde{\vh}_{t-2} +
+    \cdots
+\end{align*}
+Let's be more specific and see what happens to this with respect to $x_{t'}$:
+\begin{align}
+    \vh_t =& \vu_t \odot \tilde{\vh}_t +
+    (1-\vu_t) \odot \vu_{t-1} \odot \tilde{\vh}_{t-1} +
+    (1-\vu_t) \odot (1-\vu_{t-1}) \odot \vu_{t-2} \odot \tilde{\vh}_{t-2} +
+    \cdots 
+    \nonumber \\
+    \label{eq:gru_expand}
+    & +
+    \underbrace{
+        \left(\prod_{k=t,\ldots,t'+1} (1-\vu_k)\right) \odot \vu_{t'} 
+    }_{(a)}
+    \odot \tanh \left( \mW \phi(x_{t'}) + \mU \left( \vr_{t'} \odot \vh_{t'-1} \right)
+    \right),
+\end{align}
+where $\prod$ is for element-wise multiplication.
+
+What this implies is that the GRU effectively introduces a {\em shortcut} from
+time $t'$ to $t$. The change in $x_{t'}$ will directly influence the value of
+$\vh_t$, and subsequently the $t$-th output symbol $y_t$. In other words, all
+the issue with the simple recurrent neural network we discussed earlier in
+Sec.~\ref{sec:rnn_vanish_grad}.
+
+The update gate controls the strength of these shortcuts. Let's assume for now
+that the update gate is fixed to some predefined value between $0$ and $1$. This
+effectively makes the GRU a leaky integration unit \cite{bengio2013advances}.
+However, as it is perhaps clear from Eq.~\eqref{eq:gru_expand} that we will
+inevitably run into an issue. Why is this so? 
+
+Let's say we are sure that there are many long-term dependencies in the data.
+It is natural to choose a large coefficient for the leaky integration unit,
+meaning the update gate is close to $1$. This will definitely help carrying the
+dependency across many time steps, but this inevitably carries {\em unnecessary}
+information as well. This means that much of the representational power of the
+output function $g_{\text{out}}(\vh_t)$ is wasted in {\em ignoring} those
+unnecessary information.
+
+If the update gate is fixed to something substantially smaller than $1$, all the
+shortcuts (see Eq.~\eqref{eq:gru_expand} (a)) will exponentially vanish. Why?
+Because it is a repeated multiplication of a scalar small than 1. In other
+words, it does not really help to have a leaky integration unit in the place of
+a simple $\tanh$ unit.
+
+This is however not the case with the actual GRU or LSTM, because those update
+gates are {\em not} fixed but are adaptive with respect to the input. Why is
+this so?
+
+
+\alert{\it Soon to appear}
+
+\section{Neural Language Models}
+
+
+
+
+
+%If $\log p(y_t=y_t^*|\ldots,\phi(x_{t'})+\epsilon, \ldots)$ is larger than the
+%current estimate of the conditional probability of the correct label, we move
+%into the direction of $\epsilon$, which will decrease the cost
+%function.\footnote{
+%    Note that the cost function I am referring to here only concerns getting the
+%    $t$-th output correct given the $t'$-th input symbol. It is quite likely
+%    that following $\epsilon$ that increases $\log p(y_t=y_t^*| \ldots)$ will
+%    not decrease the overall cost function. Why? Because there are many other
+%    dependencies in the data.
+%}
+
+
+
+
+
+
+
+
 
 
 
