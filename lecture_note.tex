@@ -2644,7 +2644,7 @@ The hidden state after $l$ symbols is
     \nonumber
     \\
     \label{eq:rnn_forward}
-    =& \sum_{t=1}^l \left( \prod_{l'=1}^{l-t} \mU\right) \mW\phi(x_t)
+    =& \sum_{t=1}^l \underbrace{\left( \prod_{l'=1}^{l-t} \mU\right) \mW\phi(x_t)}_{(a)}
 \end{align}
 where $l$ is the length of the input sequence.
 
@@ -2654,40 +2654,47 @@ Let us assume that
     \item $\mU$ is a full rank matrix
     \item The input sequence is sparse: $\sum_{t=1}^l \II_{\phi(x_t) \neq 0} =
         c$, where $c=O(1)$
-    \item $\left[ \mW \phi(x) \right]_i \geq 0$ for all $i$
+    \item $\left[ \mW \phi(x) \right]_i > 0$ for all $i$
 \end{itemize}
-Then, we will approximate $\vh_l$ by
+and consider Eq.~\eqref{eq:rnn_forward} (a):
 \begin{align}
-    \label{eq:approx_h}
-    \vh_l = c \underbrace{\left( \prod_{l'=1}^{l-t'} \mU\right) 
-    \mW\phi(x_{t'})}_{(a)} + O(1),
+    \label{eq:rnn_forward_one}
+    \vh_l^{t'} = \left( \prod_{l'=1}^{l-t'} \mU\right) 
+    \mW\phi(x_{t'}).
 \end{align}
-where $x_{t'}$ is the last non-zero symbol in the input sequence, and
-$O(1)$ is an error in the approximation.
+%We will write $\vh_l$ by
+%\begin{align}
+%    \label{eq:approx_h}
+%    \vh_l = c \underbrace{\left( \prod_{l'=1}^{l-t'} \mU\right) 
+%    \mW\phi(x_{t'})}_{(a)},
+%\end{align}
+%where $x_{t'}$ is the last non-zero symbol in the input sequence, and
+%$O(1)$ is an error in the approximation.
 
-Now, let's look at what happens to Eq.~\eqref{eq:approx_h} (a). First, the
+Now, let's look at what happens to Eq.~\eqref{eq:rnn_forward_one}. First, the
 eigendecomposition of the matrix $\mU$:
 \begin{align*}
-    \mU = \mQ \mS \mQ^{\top},
+    \mU = \mQ \mS \mQ^{-1},
 \end{align*}
 where $\mS$ is a diagonal matrix whose non-zero entries are eigenvalues.
 $\mQ$ is an orthogonal matrix. Then
 \begin{align*}
-    \prod_{l'=1}^{l-t'} \mU = \mQ \mS^{l-t'} \mQ^{\top},
+    \prod_{l'=1}^{l-t'} \mU = \mQ \mS^{l-t'} \mQ^{-1},
 \end{align*}
 and
 \begin{align*}
     \left(\prod_{l'=1}^{l-t'} \mU\right) \mW\phi(x_{t'})
-= \diag(\mS^{l-t'}) \odot (\mQ \mQ^\top \mW\phi(x_{t'})),
+    = \diag(\mS^{l-t'}) \odot (\underbrace{\mQ \mQ^{-1}}_{=\mI} \mW\phi(x_{t'})),
 \end{align*}
 where $\odot$ is an element-wise product.
 
 What happens if the largest eigenvalue $e_{\max} = \max \diag(\mS)$ is larger
-than $1$, the norm of $\vh_l$ will {\em explode}, i.e., $\|\vh_l\| \to
-\infty$. The rate of growth is exponentially with respect to  the length of the
-input sequence, meaning that even when the input sequence is not too long, the
-norm of the memory state grows quickly if $e_{\max}$ is reasonably larger than
-$1$. 
+than $1$, the norm of $\vh_l$ will {\em explode}, i.e., $\|\vh_l\| \to \infty$.
+Furthermore, due to the assumption that $\mW\phi(x_{t'}) > 0$, each element of
+$\vh_l$ will explode to infinity as well. The rate of growth is exponentially
+with respect to  the length of the input sequence, meaning that even when the
+input sequence is not too long, the norm of the memory state grows quickly if
+$e_{\max}$ is reasonably larger than $1$. 
 
 This happens, because the nonlinearity $g$ is {\em unbounded}. If $g$ is bounded
 from both above and below, such as the case with $\tanh$, the norm of the memory
@@ -2839,7 +2846,7 @@ From these two, we get
 \underline{\vh}_{t}} \mU\right).
 \end{align*}
 
-Do you see how similar it looks like Eq.~\eqref{eq:approx_h}? If the recurrent
+Do you see how similar it looks like Eq.~\eqref{eq:rnn_forward_one}? If the recurrent
 activation function $f$ is linear, this whole term reduces to
 \begin{align*}
     \frac{\partial \vh_{l_1}}{\partial \vh_{l_0+1}} = \mU^{l_1-l_0+1},
@@ -2866,15 +2873,15 @@ look at $\frac{\partial \vh_{t}}{\partial \underline{\vh}_{t}} \mU$ as
             \end{array}
     \right] 
         }_{=\diag\left( \frac{\partial \vh_{t}}{\partial \underline{\vh}_{t}}\right)}
-    \left(\mQ \mS \mQ^{\top}\right),
+    \left(\mQ \mS \mQ^{-1}\right),
 \end{align*}
-where we used the eigendecomposition of $\mU=\mQ \mS \mQ^{\top}$. This can be
+where we used the eigendecomposition of $\mU=\mQ \mS \mQ^{-1}$. This can be
 re-written into
 \begin{align*}
     \frac{\partial \vh_{t}}{\partial \underline{\vh}_{t}} \mU = 
     \mQ \left( \diag\left(\frac{\partial \vh_{t}}{\partial
             \underline{\vh}_{t}}\right)
-    \odot \mS \right) \mQ^{\top}.
+    \odot \mS \right) \mQ^{-1}.
 \end{align*}
 This means that the eigenvalue of $\mU$ will be scaled by the derivative of the
 recurrent activation function at each timestep. In this case, we can bound the
@@ -2983,7 +2990,7 @@ Let's rewrite
     = \frac{\partial \log p(y_t=y_t^*|\ldots)}{\partial \vh_t}
     \underbrace{
         \frac{\partial \vh_t}{\partial \vh_{t-1}} \cdots
-        \frac{\partial \vh_{t'+1}}{\partial \vh_{t'+1}} 
+        \frac{\partial \vh_{t'+1}}{\partial \vh_{t'}} 
     }_{(a)}
     \frac{\partial \vh_{t'}}{\partial \phi(x_t)}.
 \end{align*}
