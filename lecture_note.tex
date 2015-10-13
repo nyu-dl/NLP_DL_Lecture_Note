@@ -3095,11 +3095,15 @@ words, it does not really help to have a leaky integration unit in the place of
 a simple $\tanh$ unit.
 
 This is however not the case with the actual GRU or LSTM, because those update
-gates are {\em not} fixed but are adaptive with respect to the input. Why is
-this so?
+gates are {\em not} fixed but are adaptive with respect to the input. If the
+network detects that there is an important dependency being captured, the update
+gate will be closed ($u_j \approx 0$.) This will effectively strengthen the
+shortcut connection (see Eq.~\eqref{eq:gru_expand} (a).) When the network
+detects that there is no dependency anymore, it will open the update gate ($u_j
+\approx 1$), which effectively cuts off the shortcut. How does the network know,
+or detect, the existence or lack of these dependencies? Do we need to manually
+code this up? I will leave these questions for you to figure out.
 
-
-\alert{\it Soon to appear}
 
 \section{Neural Language Models}
 
