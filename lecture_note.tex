@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass{report}
 \usepackage{mathptmx}
 \usepackage{url,latexsym,amsmath,amsthm,xspace,rotating,multirow,multicol,xspace,amssymb,paralist}
 \usepackage{euscript}
@@ -181,7 +181,7 @@
 }
 
 
-\section{Introduction}
+\chapter{Introduction}
 
 This lecture is going to be the only one where I discuss some philosophical,
 meaning nonpractical, arguments, because accoring to Chris Manning and Hinrich
@@ -189,9 +189,9 @@ Schuetze, ``{\it even practically-minded people have to confront the issue of
 what prior knowledge to try to build into their model}''
 \cite{manning1999foundations}. 
 
-\subsection{Route we will {\it not} take}
+\section{Route we will {\it not} take}
 
-\subsubsection{What is Language?}
+\subsection{What is Language?}
 
 The very first question we must ask ourselves before starting this course is the
 question of what natural language is. Of course, the rest of this course does
@@ -227,7 +227,7 @@ languages, or natural languages. There exists a set of generating rules that
 where those generating rules are. Where are they stored? How are they stored? Do
 we have separate generating rules for different languages? 
 
-\subsubsection{Language Understanding}
+\subsection{Language Understanding}
 
 \paragraph{Understanding Human Language}
 
@@ -337,9 +337,9 @@ in this course, understanding exists as it is, regardless of what the understood
 insight/knowledge will be used for. And, this is the reason why we do not walk
 down this road.
 
-\subsection{Road we {\it will} take}
+\section{Road we {\it will} take}
 
-\subsubsection{Language as a Function}
+\subsection{Language as a Function}
 
 In this course, we will view a natural/human language as ``{\it a system
 intended to communicate ideas from a speaker to a hearer}''
@@ -372,7 +372,7 @@ wonder why Chomsky was so harsh in criticizing Skinner's work in
 This departure, as I see it, is the departure toward a functional view of
 language. {\it Language is a function of communication}. 
 
-\subsubsection{Language Understanding as a Function Approximation}
+\subsection{Language Understanding as a Function Approximation}
 
 Let's make a large jump here such that we consider this function as a
 mathematical function.  This function (called language) takes as input the state
@@ -456,7 +456,7 @@ specifically deep learning, to solve these tasks by approximating sub-functions
 of language.
 
 
-\section{Function Approximation as Supervised Learning}
+\chapter{Function Approximation as Supervised Learning}
 
 Throughout this course, we will extensively use artificial neural
 networks\footnote{
@@ -467,9 +467,9 @@ to approximate (a part of) the function of natural language. This makes it
 necessary for us to study the basics of neural networks first, and this lecture
 and a couple of subsequent ones are designed to serve this purpose.
 
-\subsection{Function Approximation: Parametric Approach}
+\section{Function Approximation: Parametric Approach}
 
-\subsubsection{Expected Cost Function}
+\subsection{Expected Cost Function}
 
 Let us start by defining a data distribution $p_{\text{data}}$.
 $p_{\text{data}}$ is defined over a pair of input and output vectors, $\vx \in
@@ -537,7 +537,7 @@ distribution $p_{\text{data}}$ is. Even if we have access to $p_{\text{data}}$,
 we can exactly compute $C(\TT)$ only with heavy assumptions on both the data
 distribution and the distance function.\footnote{Why?} 
 
-\subsubsection{Empirical Cost Function}
+\subsection{Empirical Cost Function}
 
 This does not mean that we are doomed from the beginning. Instead of the
 full-blown description of the data distribution $p_{\text{data}}$, we will
@@ -563,7 +563,7 @@ in mind that at the end of the day, the goal is to find a set of parameters that
 minimizes the {\em expected} cost.
 
 
-\subsection{Learning as Optimization}
+\section{Learning as Optimization}
 
 We often call this process of finding a good set of parameters that minimizes
 the expected cost {\em learning}. This term is used from the perspective of a
@@ -575,7 +575,7 @@ mentioning that learning is {\em optimization}. We have a clearly defined
 function (the empirical cost function $\tilde{C}$) which needs to be minimized
 with respect to its input $\TT$.
 
-\subsubsection{Gradient-based Local Iterative Optimization}
+\subsection{Gradient-based Local Iterative Optimization}
 There are many optimization algorithms one can use to find a set of parameters
 that minimizes $\tilde{C}$. Sometimes, you can even find the optimal set of
 parameters in a closed form equation.\footnote{
@@ -657,7 +657,7 @@ $\eta$. The GD algorithm iterates the following step:
 The iteration continues until a certain stopping criterion is met, which we will
 discuss shortly.
 
-\subsubsection{Stochastic Gradient Descent}
+\subsection{Stochastic Gradient Descent}
 \label{sec:sgd}
 
 This simple GD algorithm works surprisingly quite well, and it is a fundamental
@@ -741,7 +741,7 @@ This SGD algorithm will be at the core of this course and will be discussed
 further in the future lectures.
 
 
-\subsection{When do we stop learning?}
+\section{When do we stop learning?}
 \label{sec:model_selection}
 
 From here on, I assume that we approximate the ground truth function by
@@ -796,7 +796,7 @@ Fig.~\ref{fig:cost}, the slope $a$ of a linear function $f(x) = a x$) will
 likely be a sub-optimal cost for the expected cost function about which we
 really care. 
 
-\subsubsection{Early Stopping}
+\subsection{Early Stopping}
 What should we do? There are many ways to avoid this weird contradiction where
 we want to optimize the cost function well but not too well. Among those, one
 most important trick is {\em early stopping}, which is only applicable when
@@ -857,7 +857,7 @@ other words, the set of parameters that perfectly minimizes the training cost
 function (thereby capturing even noise in the training set) will be penalized
 when measured by the validation cost function. 
 
-\subsubsection{Model Selection}
+\subsection{Model Selection}
 In fact, the use of the validation cost does not stop at the early stopping.
 Rather, it has a more general role in model selection. First, we must talk about
 model selection itself.
@@ -920,7 +920,7 @@ smallest validation cost $C_{\val}(M)$.
 This is one way to do {\em model selection}, and we will talk about another way
 to do this later.
 
-\subsection{Evaluation}
+\section{Evaluation}
 
 But, wait, if this is an argument for using the validation cost to {\em early
 stop} the optimization (or learning), one needs to notice something weird. What
@@ -953,7 +953,7 @@ model structure as well as any other hyperparameters biasing toward a better
 test cost. The best option is to never ever look at the test set until it is
 absolutely needed (e.g., need to present your result.)
 
-\subsection{Linear Regression for Non-Linear Functions}
+\section{Linear Regression for Non-Linear Functions}
 
 Let us start with a simple linear function to approximate a true generating
 function such that
@@ -988,7 +988,7 @@ stopping?)
 
 Now, but we are not too satisfied with a linear network, are we?
 
-\subsubsection{Feature Extraction}
+\subsection{Feature Extraction}
 \label{sec:feature_extraction}
 
 Why are we not satisfied?
@@ -1044,9 +1044,9 @@ where there's simply not enough domain knowledge to exploit. To make the matter
 worse, it is likely that the domain knowledge is not correct, making the whole
 business of using manually extracted features futile.
 
-\section{Neural Networks and Backpropagation Algorithm}
+\chapter{Neural Networks and Backpropagation Algorithm}
 
-\subsection{Conditional Distribution Approximation}
+\section{Conditional Distribution Approximation}
 
 I have mainly described so far as if the function we approximate or the function
 we use to approximate returns only a constant value, as in one point $\vy$ in
@@ -1160,7 +1160,7 @@ when we discuss language modelling. However, one thing we must keep in our mind
 is that there is nothing different between approximating a function and a
 distribution.
 
-\subsubsection{Why do we want to do this?}
+\subsection{Why do we want to do this?}
 
 Before we move on to the main topic of today's lecture, let's try to understand
 why we want to output the distribution. Unlike returning a single point in the
@@ -1201,7 +1201,7 @@ identified and ignored by the function, in which case the function should return
 the uncertainty due to the observational noise along with the most likely (or
 the average) prediction.
 
-\subsubsection{Other Distributions}
+\subsection{Other Distributions}
 
 I have described two distributions (densities) that are widely used: 
 \begin{itemize}
@@ -1250,7 +1250,7 @@ where
         \right.
 \end{align*}
 
-\subsection{Feature Extraction is also a Function}
+\chapter{Feature Extraction is also a Function}
 
 We talked about the manual feature extraction in the previous lecture (see
 Sec.~\ref{sec:feature_extraction}. But, this is quite unsatisfactory, because
@@ -1322,7 +1322,7 @@ But, regardlessly, this is not what we want.\footnote{
 }
 What we want is to fully tune the whole thing.
 
-\subsection{Multilayer Perceptron}
+\section{Multilayer Perceptron}
 \label{sec:mlp}
 
 The basic idea of multilayer perceptron is to stack a large number of those
@@ -1333,7 +1333,7 @@ years for people to figure out a way to tune the whole network, both $f$ and
 $\phi$'s together. See \cite{schmidhuber2015deep} and \cite{lecun2015deep}, if you
 are interested in the history.
 
-\subsubsection{Example: Binary classification with a single hidden unit}
+\subsection{Example: Binary classification with a single hidden unit}
 
 Let us start with the simplest example. The input $x \in \RR$ is a real-valued
 scalar, and the output $y \in \left\{0,1\right\}$ is a binary value
@@ -1477,7 +1477,7 @@ day, the amount of computation needed to compute the gradient of the cost
 function w.r.t. all the parameters in the network is only as expensive as
 computing the cost function itself.
 
-\subsubsection{Example: Binary classification with more than one hidden units}
+\subsection{Example: Binary classification with more than one hidden units}
 \label{sec:example2}
 
 Let us try to generalize this simple, or rather simplest model, into a slightly
@@ -1576,7 +1576,7 @@ For $c$, it's straightforward, since
 \end{align*}
 
 
-\subsubsection{Automating Backpropagation}
+\subsection{Automating Backpropagation}
 \label{sec:autodiff}
 
 This procedure, presented as two examples, is called a {\em backpropagation}
@@ -1685,7 +1685,7 @@ a {\em computational graph of gradient}, where the output is the derivatives of
 all the variable nodes (or a subset of them.) Then, we can use the same facility
 to compute the second-order derivatives, right? 
 
-\subsubsection{What if a Function is {\em not} Differentiable?}
+\subsection{What if a Function is {\em not} Differentiable?}
 \label{sec:nonlinearities}
 
 From the description so far, one thing we notice is that backpropagation works
@@ -1785,7 +1785,7 @@ function nodes.
 
 
 
-\section{Recurrent Neural Networks and Gated Recurrent Units}
+\chapter{Recurrent Neural Networks and Gated Recurrent Units}
 
 After the last lecture I hope that it has become clear how to build a multilayer
 perceptron. Of course, there are so many details that I did not mention, but are
@@ -1805,7 +1805,7 @@ general answer to them.
 %become {\em the} standard in solving many challenging computer vision and speech
 %tasks. 
 
-\subsection{Recurrent Neural Networks}
+\section{Recurrent Neural Networks}
 \label{sec:rnn}
 
 Instead, I will move on to describing how we can build a neural
@@ -1920,7 +1920,7 @@ and $\mU^{d_h \times d_h}$ are parameters of this function. A nonlinear
 activation function $g$ can be any function, but for now, we will assume that it
 is an element-wise nonlinear function such as $\tanh$.
 
-\subsubsection{Fixed-Size Output $y$}
+\subsection{Fixed-Size Output $y$}
 \label{sec:rnn_fixed_y}
 
 Because our goal is to approximate an underlying, true function, we now need to
@@ -1986,7 +1986,7 @@ automate backpropagation (computing the gradient of the cost function w.r.t. the
 parameters) in Sec.~\ref{sec:autodiff} applies to recurrent neural networks
 directly, except for one potentially confusing point.
 
-\subsubsection{Multiple Child Nodes and Derivatives}
+\subsection{Multiple Child Nodes and Derivatives}
 
 It may be confusing how to handle those parameters that are shared across
 multiple time steps; $\mW$ and $\mU$ in Fig.~\ref{fig:rec_unrolled}. In fact, in
@@ -2071,7 +2071,7 @@ allows us to compute the derivative of the cost function w.r.t. the
 parameter $W$ efficiently by simply running the recurrent neural network
 backward. 
 
-\subsubsection{Example: Sentiment Analysis}
+\subsection{Example: Sentiment Analysis}
 
 There is a task in natural language processing called {\em sentiment analysis}.
 As the name suggests, the goal of this task is to predict the sentiment of a
@@ -2122,7 +2122,7 @@ lab session.\footnote{
 }
 
 
-\subsubsection{Variable-Length Output $y$: $|x|=|y|$}
+\subsection{Variable-Length Output $y$: $|x|=|y|$}
 \label{sec:rnn_x_y}
 
 Let's generalize what we have discussed so far to recurrent neural networks
@@ -2313,7 +2313,7 @@ the output sequence at each time step. This procedure is called {\em beam
 search}, and we will discuss more about this in a later lecture on neural
 machine translation.
 
-%\subsubsection{Variable-Length Output $y$: $|x|\neq|y|$}
+%\subsection{Variable-Length Output $y$: $|x|\neq|y|$}
 %
 %Now let us continue on to a much more interesting case of having a
 %variable-length output $y$ whose length differs from that of the input sequence
@@ -2322,9 +2322,9 @@ machine translation.
 %
 %\alert{TBD}
 
-\subsection{Gated Recurrent Units}
+\section{Gated Recurrent Units}
 
-\subsubsection{Making Simple Recurrent Neural Networks {\em Realistic}}
+\subsection{Making Simple Recurrent Neural Networks {\em Realistic}}
 
 Let us get back to the analogy we made in Sec.~\ref{sec:rnn}. We compared a
 recurrent neural network to how CPU works. Executing a recurrent function $f$ is
@@ -2425,7 +2425,7 @@ See Fig.~\ref{fig:gru} for the graphical illustration.
     \end{minipage}
 \end{figure}
 
-\subsubsection{Gated Recurrent Units}
+\subsection{Gated Recurrent Units}
 
 Now here goes a big question: {\em How are the update $\vu$ and reset $\vr$
 gates computed?}
@@ -2576,9 +2576,9 @@ read \cite{greff2015lstm,jozefowicz2015empirical}.\footnote{
     to the optimal gated unit we can find. 
 }
 
-\subsection{Why not Rectifiers?}
+\section{Why not Rectifiers?}
 
-\subsubsection{Rectifiers Explode}
+\subsection{Rectifiers Explode}
 \label{sec:rect_explode}
 
 Let us go back to the {\em simple recurrent neural network} which uses the
@@ -2712,7 +2712,7 @@ functions.\footnote{
 } I will call this recurrent neural network with $\tanh$ as an element-wise
 nonlinear function a {\em simple recurrent neural network}. 
 
-\subsubsection{Is $\tanh$ a Blessing?}
+\subsection{Is $\tanh$ a Blessing?}
 \label{sec:vanishing_grad}
 
 Now, the argument in the previous section may sound like $\tanh$ and $\sigmoid$
@@ -2910,7 +2910,7 @@ necessarily true in the case of backpropagating derivaties. Especially because,
 there is a higher chance of vanishing gradient with $\tanh$, or even worse with
 $\sigmoid$. Why? Because $\frac{1}{\lambda} > 1$ for almost everywhere.
 
-\subsubsection{Are We Doomed?}
+\subsection{Are We Doomed?}
 \label{sec:rnn_vanish_grad}
 
 \paragraph{Exploding Gradient}
@@ -3029,7 +3029,7 @@ the well-known toy tasks which were specifically designed to exhibit long-term
 dependencies \cite{hochreiter2001gradient}.
 
 
-\subsubsection{Gated Recurrent Units Address Vanishing Gradient}
+\subsection{Gated Recurrent Units Address Vanishing Gradient}
 
 Will the same problems of vanishing gradient happen with the gated recurrent
 units (GRU) or the long short-term memory units (LSTM)? Let us write the memory 
@@ -3105,8 +3105,13 @@ or detect, the existence or lack of these dependencies? Do we need to manually
 code this up? I will leave these questions for you to figure out.
 
 
-\section{Neural Language Models}
+\chapter{Neural Language Models}
 
+\section{Units of Natural Language}
+
+\alert{TBD}
+
+\section{Language Modeling {\em is} Natural Language Understanding}
 
 
 
