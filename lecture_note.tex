@@ -190,6 +190,7 @@ what prior knowledge to try to build into their model}''
 \cite{manning1999foundations}. 
 
 \section{Route we will {\it not} take}
+\label{sec:wrong_route}
 
 \subsection{What is Language?}
 
@@ -228,6 +229,7 @@ where those generating rules are. Where are they stored? How are they stored? Do
 we have separate generating rules for different languages? 
 
 \subsection{Language Understanding}
+\label{sec:language_understanding_wrong}
 
 \paragraph{Understanding Human Language}
 
@@ -3107,11 +3109,184 @@ code this up? I will leave these questions for you to figure out.
 
 \chapter{Neural Language Models}
 
-\section{Units of Natural Language}
+\section{Language Modeling: First Step}
+
+What does it mean for a machine to understand natural language? In other words,
+how can we tell that the machine understood natural language?  These are the two
+equivalent questions that are at the core of this course. 
+
+One of the most basic capability of a machine that can signal us that it indeed
+understands natural language is for the machine to tell how likely a given
+sentence is. Of course, this is extremely ill-defined, as we probably cannot
+define the {\em likeliness} of a sentence, because there are many different
+types of unlikeliness. For instance, a sentence ``Colorless green ideas sleep
+furiously'' from Chomsky's \cite{chomsky2002syntactic} is {\em unlikely}
+according to our common sense, because 
+\begin{enumerate}
+    \itemsep 0em
+    \item An object (``idea'') cannot be both ``colorless'' and ``green.''
+    \item An object cannot ``sleep'' ``furiously.''
+    \item An ``idea'' does not ``sleep.''
+\end{enumerate}
+On the other hand, this sentence is a grammatically correct sentence.
+
+Let's take a look at another sentence ``Jane and me went to see a movie
+yesterday.'' Grammatically, this is not the most correct sentence one can make.
+It should be ``Jane and I went to see a movie yesterday.'' Even with a
+grammatical error in the original sentence however, the meaning of the sentence
+is clear to me, and perhaps is much more understandable than the sentence
+``colorless green ideas sleep furiously.'' Furthermore, many people likely say
+this (saying ``me'' instead of ``I'') quite often. This sentence is thus likely
+according to our common sense, but is not likely according to the grammar.
+
+This observation makes us wonder what is the criterion to use. Is it correct for
+a machine to tell whether the sentence is likely by analyzing its grammatical
+correctness? Or, is it possible that the machine should deem a sentence likely
+only when its meaning agrees well with common sense regardless of its
+grammatical correctness in the most strict sense?
+
+As we discussed in the first lecture of the course, we are more interested in
+approaching natural language as a means for one to communicate ideas to a
+listener. In this sense, language use is a function which takes as input the
+surrounding environment, including the others' speech, and returns linguistic
+response, and this function is {\em not} given but learned via observing others'
+use of language (\alert{TBD: some citation on baby's language learning}) and the
+reinforcement by the surrounding environment~\cite{skinner2014verbal}. Also,
+throughout this course, we are not concerned too much about the existing
+syntactic, or grammatical, structures underlying natural language, which makes
+it difficult for us to say anything about the grammatical correctness of a given
+sentence.
+
+In short, we take the route here that the likeliness of a sentence be determined
+based on its agreement with common sense. The common sense here is captured by
+everyday use of natural language, which consequently implies that the statistics
+of natural language use can be a strong indicator for determining the likely of
+a natural language sentence. 
+
+\subsection{What if those linguistic structures do exist}
+
+Of course, as we discussed earlier in Sec.~\ref{sec:wrong_route} and in this
+section, not everyone agrees.  This is due to the fact that a perfect
+grammatical sentence may be considered unlikely, just because it does not happen
+often. In other words, statistical approaches to {\em language modeling} may
+conclude that a sentence with perfectly valid grammatical construction is
+unlikely. Is this a problem? 
+
+This problem of telling how likely a given sentence is can be viewed very
+naturally as building a probabilistic model of sentences. In other words, given
+a sentence $S$, what is the probability $p(S)$ of $S$?  Let us briefly talk
+about what this means for the case of viewing the likeliness of a sentence as
+equivalent to its grammatical correctness.\footnote{
+    Why briefly and why here? Because, we will not pursue this line at all after
+    this section.
+}
+
+We first assume that there is an underlying linguistic structure $G$ which has
+generated the observed sentence $S$. Of course, we do not know the correct $G$
+in advance, and unfortunately no one will tell us what the correct $G$
+is.\footnote{
+    Here, the correct $G$ means the $G$ that generated $S$, not the whole
+    structure of $G$ which is assumed to exist according to a certain set of
+    rules.
+}
+Thus,
+$G$ is a hidden variable in this case. This hidden structure $G$ generates the
+observed sentence $S$ according to an unknown conditional distribution $p(S|G)$.
+Each and every grammatical structure $G$ is assigned a prior probability which
+is also unknown in advance.\footnote{
+    This is not necessarily true. If we believe that each and every grammatical
+    correct sentence is equally likely and that each correct grammatical
+    structure generates a single corresponding sentence, the prior distribution
+    over the hidden linguistic structure is such that any correct structure is
+    given an equal probability while any incorrect structure is given a zero
+    probability. But, of course, if we think about it, there are clearly certain
+    structures that are more prevalent and others that are not.
+}
+
+With the conditional distribution $S|G$ and the prior distribution $G$, we
+easily get the joint distribution $S,G$ by
+\begin{align*}
+    p(S,G) = p(S|G) p(G),
+\end{align*}
+from the definition of conditional probability.\footnote{
+    A conditional probability of $A$ given $B$ is defined as
+    \begin{align*}
+        p(A|B) = \frac{p(A, B)}{p(B)}
+    \end{align*}
+} 
+From this joint distribution we get the distribution over a given sentence $S$
+by marginalizing out $G$:
+\begin{align*}
+    p(S) = \sum_{G} p(S, G).
+\end{align*}
+This means that we should compute how likely a given sentence $S$ is with
+respect to all possible underlying linguistic structure. This is very likely
+intractable, because there must be infinite possible such structures.
+
+Instead of computing $p(S)$ exactly we can simply look at its lowerbound. For
+instance, one simplest, and probably not the best, way to do so is
+\begin{align*}
+    p(S) = \sum_G p(S,G) \geq p(S, \hat{G}),
+\end{align*}
+where $\hat{G} = \argmax_G p(S,G) = \argmax_G p(G|S)$.\footnote{
+    This inequality holds due to the definition of probability, which states
+    that $p(X)\geq 0$ and $\sum_X p(X) = 1$.
+}
+
+This lowerbound is tight, i.e., $p(S) = p(S, \hat{G})$, when there is only a
+single true underlying linguistic structure $\hat{G}$ given $S$. What this says
+is that there is no other possible linguistic structure possible for a single
+observed sentence, i.e., no ambiguity in inferring the correct linguistic
+structure.  In other words, we can compute the probability or likeliness of a
+given sentence by inferring its correct underlying linguistic structure.
+
+However, there are a few issues here. First, it is not clear which formalism $G$
+follows, and we have briefly discussed about this at the very beginning of this
+course. Second, it is quite well known that most of the formalisms do indeed
+have uncertainty in inference. Again, we looked at one particular example in
+Sec.~\cite{sec:language_understanding_wrong}. These two issues make many people,
+including myself, quite uneasy about this type of {\em model-based} approaches. 
+
+In the remaining of this chapter, I will thus talk about model-free approaches
+(as opposed to these model-based approaches.)
+
+\paragraph{Quick Note on Linguistic Units}
+
+Before continuing, there is one question that must be bugging you, or at least
+has bugged me a lot: {\em what is the minimal linguistic unit?} 
+
+If we think about written text, the minimal unit does seem like a character.
+With spoken language, the minimal unit seems to be a phoneme. But, is this the
+level at which we want to model the process of {\em understanding} natural
+language? In fact, to most of the existing natural language processing
+researchers as well as some (or most) linguists, the answer to this question is
+a hard ``no.''
+
+The main reason is that these low-level units, both characters and phonemes, do
+not convey any meaning themselves. Does a Latin alphabet ``q'' have its own
+meaning? The answer by most of the people will be ``no.'' Then, starting from
+this alphabet ``q'', how far should we climb up in the hierarchy of linguistic
+units to reach a level at which the unit begins to convey its own meaning?
+``qu'' does not seem to have its own meaning still. ``qui'' in French means
+``who'', but in English it does not really say much. ``quit'' in English is a
+valid word that has its own meaning. 
+
+It looks like a word is a level at which meaning begins to form itself. 
+
 
 \alert{TBD}
 
-\section{Language Modeling {\em is} Natural Language Understanding}
+\section{$n$-Gram Language Model: Markovian, Non-Parametric}
+
+\alert{TBD}
+
+\section{Neural Language Model: Markovian, Parametric}
+
+\alert{TBD}
+
+\section{Neural Language Model: Non-Markovian, Parametric}
+
+\alert{TBD}
 
 
 
