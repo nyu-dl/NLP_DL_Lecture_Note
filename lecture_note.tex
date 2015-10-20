@@ -1243,14 +1243,15 @@ In this case, the (empirical) cost function based on the KL divergence is
     C(\TT) = -\frac{1}{N} \sum_{n=1}^N \sum_{k=1}^K \II_{k=y^n} \mu_k,
 \end{align}
 where 
-\begin{align*}
+\begin{align}
+    \label{eq:indicator_function}
     \II_{k=y^n} = \left\{ 
         \begin{array}{c c}
             1, & \text{if }k=y^n \\
             0, & \text{otherwise}
         \end{array}
         \right.
-\end{align*}
+\end{align}
 
 \chapter{Feature Extraction is also a Function}
 
@@ -3250,7 +3251,10 @@ including myself, quite uneasy about this type of {\em model-based} approaches.
 In the remaining of this chapter, I will thus talk about model-free approaches
 (as opposed to these model-based approaches.)
 
-\paragraph{Quick Note on Linguistic Units}
+
+\section{Basic Settings}
+
+\subsection{Quick Note on Linguistic Units}
 
 Before continuing, there is one question that must be bugging you, or at least
 has bugged me a lot: {\em what is the minimal linguistic unit?} 
@@ -3269,9 +3273,113 @@ this alphabet ``q'', how far should we climb up in the hierarchy of linguistic
 units to reach a level at which the unit begins to convey its own meaning?
 ``qu'' does not seem to have its own meaning still. ``qui'' in French means
 ``who'', but in English it does not really say much. ``quit'' in English is a
-valid word that has its own meaning. 
+valid word that has its own meaning, and similarly ``quiet'' is a valid word
+that has its own meaning, quite apart from that of ``quit.''
 
-It looks like a word is a level at which meaning begins to form itself. 
+It looks like a word is the level at which meaning begins to form itself.
+However, this raises a follow-up question on the definition of a word: {\em What
+is a word?}
+
+\alert{TBD}
+
+\subsection{Language Modeling}
+
+Regardless of which linguistic unit we use, any natural language sentence $S$
+can be represented as a sequence of $T$ discrete symbols such that
+\begin{align*}
+    S = (w_1, w_2, \ldots, w_T).
+\end{align*}
+Each symbol is one element from a {\em vocabulary} $V$ which contains all
+possible symbols:
+\begin{align*}
+    V = \left\{ v_1, v_2, \ldots, v_{|V|}\right\},
+\end{align*}
+where $|V|$ is used to mean the size of the vocabulary, or the number of all
+symbols.
+
+The problem of language modeling is equivalent to finding a model that assigns a
+probability $p(S)$ to a sentence:
+\begin{align*}
+    p(S) = p(w_1, w_2, \ldots, w_T).
+\end{align*}
+Of course, we are not given this distribution and need to learn this from data.
+
+Let's say we are given data $D$ which contains $N$ sentences such that
+\begin{align*}
+    D = \left\{ S^1, S^2, \ldots, S^N \right\},
+\end{align*}
+where each sentence $S^n$ is 
+\begin{align*}
+    S^n = (w_1^n, w_2^n, \ldots, w_{T^n}^n),
+\end{align*}
+meaning that each sentence has a different length.
+
+Given this data $D$, let us estimate the probability of a certain sentence $S$.
+This is quite straightforward:
+\begin{align}
+    \label{eq:sentence_mle}
+    p(S) = \frac{\sum_{n=1}^N \II_{S = S^n}}{N},
+\end{align}
+where $\II$ is the indicator function defined earlier in
+Eq.~\eqref{eq:indicator_function} which is defined as
+\begin{align*}
+    \II_{S=S^n} = \left\{ 
+        \begin{array}{c c}
+            1, & \text{if }S=S^n \\
+            0, & \text{otherwise}
+        \end{array}
+        \right.
+\end{align*}
+This is equivalent to counting how many times $S$ occurs in the data.\footnote{
+    A data set consisting of (written) text is often referred to as a {\em
+    corpus}. 
+}
+
+Has this solved the whole problem of language model? No, unfortunately not. The
+very major issue here is that however large your corpus is, it is unlikely to
+contain all reasonable sentences in the world. Let's do simple counting here.
+
+There are $|V|$ symbols in a vocabulary. Each sentence can be as long as $T$
+symbols. Then, there are $|V|^T$ possible sentences. A reasonable range for the
+sentence length $T$ is roughly between $1$ to $50$, meaning that there are
+\begin{align*}
+    \sum_{T=1}^{50} |V|^T
+\end{align*}
+possible sentences. As it's quite clear, this is a huge space of sentences.
+
+Of course, not all those sentences are plausible. This is however conceivable
+that even the fraction of that space will be gigantic, especially considering
+that the size of vocabulary often goes up to $100$k to 1M words. Many of the
+plausible sentences will not appear in the corpus. Is this true? In fact, yes,
+it is. 
+
+It is quite easy to find such an example. For instance, Google Books Ngram
+Viewer\footnote{
+    \url{https://books.google.com/ngrams}
+}
+lets you search for a sentence or a sequence of up to five English words from
+the gigantic corpus of Google Books. Let me try to search for a very plausible
+sentence ``I like llama,'' and the Google Books Ngram Viewer returns an error
+saying that ``Ngrams not found: I like llama.''\footnote{
+    We will discuss what Ngrams are in the later sections.
+} See Fig.~\ref{fig:ngram_fail} as an evidence.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{figures/ngram_fail.png}
+    \caption{A resulting page of Google Books Ngram Viewer for the query ``I
+    like llama''.}
+    \label{fig:ngram_fail}
+\end{figure}
+
+What does this mean for the estimate in Eq.~\eqref{eq:sentence_mle}? It means
+that this estimator will be too harsh for many of the plausible sentences that
+do not occur in the data. As soon as a given sentence does not appear {\em
+exactly} as it is in the corpus, this estimator will say that there is a {\em
+zero} probability of the given sentence. Although the sentence ``I like llama''
+is a likely sentence, according to this estimator in
+Eq.~\eqref{eq:sentence_mle}, it will be deemed extremely unlikely.
+
 
 
 \alert{TBD}
