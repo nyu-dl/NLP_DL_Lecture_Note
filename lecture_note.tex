@@ -3299,9 +3299,10 @@ symbols.
 
 The problem of language modeling is equivalent to finding a model that assigns a
 probability $p(S)$ to a sentence:
-\begin{align*}
+\begin{align}
+    \label{eq:sentence_prob}
     p(S) = p(w_1, w_2, \ldots, w_T).
-\end{align*}
+\end{align}
 Of course, we are not given this distribution and need to learn this from data.
 
 Let's say we are given data $D$ which contains $N$ sentences such that
@@ -3380,19 +3381,77 @@ zero} probability of the given sentence. Although the sentence ``I like llama''
 is a likely sentence, according to this estimator in
 Eq.~\eqref{eq:sentence_mle}, it will be deemed extremely unlikely.
 
+This problem is due to the issue of {\em data sparsity}. Data sparsity here
+refers to the phenomenon where a training set does not cover the whole space of
+input sufficiently. In more concrete terms, most of the points in the input
+space, which have non-zero probabilities according to the true, underlying
+distribution, do not appear in the training set. If the size of a training set
+is assumed to be fixed, the severity of data sparsity increases as the average,
+or maximum length of the sentences. This follows from the fact that the size of
+the input space, the set of all possible sentences, grows with respect to the
+maximum possible length of a sentence.
+
+In the next section, we will discuss the most straightforward approach to
+addressing this issue of data sparsity.
+
+\section{$n$-Gram Language Model}
+
+The fact that the issue of data sparsity worsens as the maximum length of
+sentences grows hints us a straightforward approach to addressing this: {\em
+limit the maximum length of phrases/sentences we estimate a probability on}.
+This idea is a foundation on which a so-called $n$-gram language model is based.
+
+In the $n$-gram language model, we first rewrite the probability of a given
+sentence $S$ from Eq.~\eqref{eq:sentence_prob} into
+\begin{align}
+    \label{eq:unidir_sentence}
+    p(S) = p(w_1, w_2, \ldots, w_T) = p(w_1)p(w_2|w_1)\cdots
+    \underbrace{p(w_k|w_{<k})}_{(a)}
+    \cdots p(w_T|w_{<T}),
+\end{align}
+where $w_{<k}$ denotes all the symbols before the $k$-th symbol $w_k$. From
+this, the $n$-gram language model makes an important assumption that each
+conditional probability (Eq.~\eqref{eq:unidir_sentence}~(a)) is only conditioned
+on the $n-1$ preceding symbols only, meaning
+\begin{align*}
+    p(w_k | w_{<k}) \approx p(w_k | w_{k-n}, w_{k-n+1}, \ldots, w_{k-1}).
+\end{align*}
+This results in 
+\begin{align*}
+    p(S) \approx \prod_{t=1}^T p(w_t | w_{t-n}, \ldots, w_{t-1}).
+\end{align*}
+
+What does this mean? Under this assumption we are saying that any symbol in a
+sentence is {\em predictable} based on the $n-1$ preceding symbols. This is in
+fact a quite reasonable assumption in many languages. For instance, let us
+consider a phrase ``I am from''. Even without any more context information
+surrounding this phrase, such as surrounding words and the identity of a
+speaker, we know that the word following this phrase will be likely a name of
+place or country. In other words, the probability of a name of place or country
+given the three preceding words ``I am from'' is higher than that of any other
+words. 
+
+But, of course, this assumption does not always work. For instance, consider a
+phrase ``In Korea, more than half of all the residents speak
+$\underbrace{\text{Korean}}_{(a)}$.'' Let us focus on the last word ``Korean''.
+We immediately see that it will be useful to condition its conditional
+probability on the second word ``Korea''. Why is this so? Because the
+conditional probability of ``Korean'' following ``speak'' should significantly
+increase over all the other words (that correspond to other languages) knowing
+the fact that the sentence is talking about the residents of ``Korea''. This
+requires the conditional distribution to be conditioned on at least 10 words
+(``,'' is considered a separate word,) and this certainly will not be captured
+by $n$-gram language model with $n < 9$.  
+
 
 
 \alert{TBD}
 
-\section{$n$-Gram Language Model: Markovian, Non-Parametric}
+\section{Neural Language Model}
 
 \alert{TBD}
 
-\section{Neural Language Model: Markovian, Parametric}
-
-\alert{TBD}
-
-\section{Neural Language Model: Non-Markovian, Parametric}
+\section{Recurrent Language Model}
 
 \alert{TBD}
 
