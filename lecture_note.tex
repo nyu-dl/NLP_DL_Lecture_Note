@@ -3582,23 +3582,44 @@ background occurrence.
 
 In this case, the estimate of an $n$-gram becomes
 \begin{align*}
-    p(w_n | w_1, \ldots, w_{n-1}) = 
-    \frac{\alpha + c(w_1, w_2, \ldots, w_n)}{\sum_{k=1}^{|V|} (\alpha + c(w_1, w_2, \ldots,
-    k))} 
+    p(w_k | w_{k-n}, \ldots, w_{k-1}) = 
+    \frac{\alpha + c(w_{k-n}, w_{k-n+1}, \ldots, w_k)}{\sum_{w' \in V} (\alpha
+    + c(w_{k-n}, w_{k-n+1}, \ldots, w'))} 
     = 
-    \frac{\alpha + c(w_1, w_2, \ldots, w_n)}{\alpha |V| + \sum_{k=1}^{|V|} c(w_1, w_2, \ldots,
-    k)},
+    \frac{\alpha + c(w_{k-n}, w_{k-n+1}, \ldots, w_k)}{\alpha |V| + \sum_{w' \in V}
+    c(w_{k-n}, w_{k-n+1}, \ldots, w')},
 \end{align*}
-where $c(w_1, w_2, \ldots, w_n)$ is the number of occurrences of the given
-$n$-gram in the training corpus. $c(w_1, w_2, \ldots, k)$ is the number of
-occurrences of the given $n$-gram if the last word $w_n$ is substituted with the
-$k$-th word from the vocabulary $V$. $\alpha$ is often set to be a scalar such
-that $0 < \alpha \leq 1$. See the difference from the original estimate in
-Eq.~\eqref{eq:n_gram_mle}.
+where $c(w_{k-n}, w_{k-n+1}, \ldots, w_k)$ is the number of occurrences of the
+given $n$-gram in the training corpus. $c(w_{k-n}, w_{k-n+1}, \ldots, w')$ is
+the number of occurrences of the given $n$-gram if the last word $w_k$ is
+substituted with a word $w'$ from the vocabulary $V$. $\alpha$ is often set to
+be a scalar such that $0 < \alpha \leq 1$. See the difference from the original
+estimate in Eq.~\eqref{eq:n_gram_mle}.
 
 It is quite easy to see that this is a quite horrible estimator: how does it
 make sense to say that every unseen $n$-gram occurs with the same frequency?
 Also, knowing that this is a horrible approach, what can we do about this?
+
+One possibility is to smooth the $n$-gram probability by interpolating between
+the estimate of the $n$-gram probability in Eq.~\eqref{eq:n_gram_mle} and the
+estimate of the $(n-1)$-gram probability. This can written down as
+\begin{align*}
+    p^S(w_k | w_{k-n}, \ldots, w_{k-1}) = 
+    \lambda(w_{k-n}, \ldots, w_{k-1}) p(w_k | w_{k-n}, \ldots, w_{k-1})
+    + (1 - \lambda(w_{k-n}, \ldots, w_{k-1})) p^S(w_k | w_{k-n+1}, \ldots,
+    w_{k-1}).
+\end{align*}
+This implies that the $n$-gram (smoothed) probability is computed recursively by
+the lower-order $n$-gram probabilities. This is clearly an effective strategy,
+considering that falling off to the lower-order $n$-grams contains at least some
+information of the original $n$-gram, unlike the previous approach of adding a
+scalar $\alpha$ to every possible $n$-gram.
+
+A big question here is how the interpolation coefficient $\lambda$ is computed.
+
+%{\em back-off} to lower-order $n$-grams when a given
+%$n$-gram did not occur in the training corpus. For instance, if ``chases a
+%llama'' has not at all in the training corpus, 
 
 \alert{TBD}
 
