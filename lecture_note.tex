@@ -3252,9 +3252,6 @@ including myself, quite uneasy about this type of {\em model-based} approaches.
 In the remaining of this chapter, I will thus talk about model-free approaches
 (as opposed to these model-based approaches.)
 
-
-\section{Basic Settings}
-
 \subsection{Quick Note on Linguistic Units}
 
 Before continuing, there is one question that must be bugging you, or at least
@@ -3296,11 +3293,31 @@ simple strategy will completely fail to give us any meaningful, small linguistic
 unit other than sentences.
 
 Now at this point it almost seems like the best strategy is to use each
-character as a linguistic unit. This is not necessarily true as 
+character as a linguistic unit. This is not necessarily true due to the highly
+nonlinear nature of orthography.\footnote{
+    Orthography is defined as ``the study of spelling and how letters combine to
+    represent sounds and form words.''
+} There are many examples in which this nonlinear nature shows its difficulty.
+One such example is to consider the following three words: ``quite'', ``quiet''
+and ``quit''.\footnote{
+    I would like to thank Bart van Merrienboer for this example.
+}
+All three character sequences have near identical forms, but their corresponding
+meanings differ from each other substantially. In other words, any function that
+maps from these character sequences to the corresponding meanings will have to
+be extremely nonlinear and thus difficult to be learned from data. Of course,
+this is an area with active research, and I hope I am not giving you an
+impression that characters are not the units to use (see, e.g.,
+\cite{kim2015character}.)
 
-\alert{TBD}
+Now then the question is whether there is some middle ground between characters
+and words (or blank-space-separated tokens) that are more suitable to be used as
+elementary linguistic units (see, e.g., \cite{sennrich2015neural}.)
+Unfortunately this is again an area with active research.  Hopefully, we will
+have time later in the course to discuss this issue further.  For now, we will
+simply use blank-space-separated tokens as our linguistic units.
 
-\subsection{Language Modeling}
+\section{Statistical Language Modeling}
 \label{sec:lm}
 
 Regardless of which linguistic unit we use, any natural language sentence $S$
@@ -3355,7 +3372,7 @@ This is equivalent to counting how many times $S$ occurs in the data.\footnote{
     corpus}. 
 }
 
-\subsubsection{Data Sparsity}
+\subsection{Data Sparsity}
 \label{sec:data_sparsity}
 
 Has this solved the whole problem of language model? No, unfortunately not. The
@@ -3582,10 +3599,11 @@ background occurrence.
 
 In this case, the estimate of an $n$-gram becomes
 \begin{align*}
-    p(w_k | w_{k-n}, \ldots, w_{k-1}) = 
+    p(w_k | w_{k-n}, \ldots, w_{k-1}) =&
     \frac{\alpha + c(w_{k-n}, w_{k-n+1}, \ldots, w_k)}{\sum_{w' \in V} (\alpha
     + c(w_{k-n}, w_{k-n+1}, \ldots, w'))} 
-    = 
+    \\
+    =&
     \frac{\alpha + c(w_{k-n}, w_{k-n+1}, \ldots, w_k)}{\alpha |V| + \sum_{w' \in V}
     c(w_{k-n}, w_{k-n+1}, \ldots, w')},
 \end{align*}
@@ -3603,25 +3621,112 @@ Also, knowing that this is a horrible approach, what can we do about this?
 One possibility is to smooth the $n$-gram probability by interpolating between
 the estimate of the $n$-gram probability in Eq.~\eqref{eq:n_gram_mle} and the
 estimate of the $(n-1)$-gram probability. This can written down as
-\begin{align*}
-    p^S(w_k | w_{k-n}, \ldots, w_{k-1}) = 
-    \lambda(w_{k-n}, \ldots, w_{k-1}) p(w_k | w_{k-n}, \ldots, w_{k-1})
-    + (1 - \lambda(w_{k-n}, \ldots, w_{k-1})) p^S(w_k | w_{k-n+1}, \ldots,
+\begin{align}
+    p^S(w_k | w_{k-n}, \ldots, w_{k-1}) = &
+    \lambda(w_{k-n}, \ldots, w_{k-1}) p(w_k | w_{k-n}, \ldots, w_{k-1}) 
+    \nonumber \\
+    \label{eq:n_gram_smooth}
+    & + (1 - \lambda(w_{k-n}, \ldots, w_{k-1})) p^S(w_k | w_{k-n+1}, \ldots,
     w_{k-1}).
-\end{align*}
+\end{align}
 This implies that the $n$-gram (smoothed) probability is computed recursively by
 the lower-order $n$-gram probabilities. This is clearly an effective strategy,
 considering that falling off to the lower-order $n$-grams contains at least some
 information of the original $n$-gram, unlike the previous approach of adding a
 scalar $\alpha$ to every possible $n$-gram.
 
-A big question here is how the interpolation coefficient $\lambda$ is computed.
+Now a big question here is how the interpolation coefficient $\lambda$ is
+computed. The simplest approach we can think of is to fit it to the data as
+well. However, the situation is not that easy, as using the same training
+corpus, which was used to estimate $p(w_k | w_{k-n}, \ldots, w_{k-1})$ according
+to Eq.~\eqref{eq:n_gram_mle}, will lead to a degenerate case. What is this
+degenerate case? If the same corpus is used to fit both the non-smoothed
+$n$-gram probability and $\lambda$'s, the optimal solution is to simply set all
+$\lambda$'s to $1$, as that will assign the high probabilities to all the
+$n$-grams. Therefore, one needs to use a separate corpus to fit $\lambda$'s.
+
+More generally, we may rewrite Eq.~\eqref{eq:n_gram_smooth} as
+\begin{align}
+    \label{eq:n_gram_smoothing_general}
+    p^S(w_k | w_{k-n}, \ldots, w_{k-1}) = \left\{ 
+        \begin{array}{l}
+            \alpha(w_k | w_{k-n}, \ldots, w_{k-1}), \text{ if } c(w_{k-n},
+            \ldots, w_{k-1}, w_k) > 0 \\
+            \gamma(w_{k-n}, \ldots, w_{k-1}) p^S(w_{k-1}|w_{k-n}, \ldots,
+            w_{k-2}), \text{ otherwise}
+        \end{array}
+        \right.
+\end{align}
+following the notation introduced in \cite{kneser1995improved}. Specific choices
+of $\alpha$ and $\gamma$ lead to a number of different smoothing techniques. For
+an extensive list of these smoothing techniques, see \cite{chen1996empirical}.
+
+Before ending this section on smoothing techniques for $n$-gram language
+modeling, let me briefly describe one of the most widely used smoothing
+technique, called the modified Kneser-Ney smoothing (KN smoothing), described in
+\cite{chen1996empirical}. This modified KN smoothing is efficiently implemented
+in the open-source software package called KenLM~\cite{Heafield-estimate}.
+
+First, let us define some quantities. We will use $n_k$ to denote the total
+number of $n$-grams that occur exactly $k$ times in the training corpus. With
+this, we define the following so-called discounting factors:
+\begin{align*}
+    Y =& \frac{n_1}{n_1 + 2 n_2} \\
+    D_1 =& 1 - 2 Y \frac{n_2}{n_1} \\
+    D_2 =& 2 - 3 Y \frac{n_3}{n_2} \\
+    D_{3+} =& 3 - 4 Y \frac{n_4}{n_3}.
+\end{align*}
+Also, let us define the following quantities describing the number of all
+possible words following a given $n$-gram with a specified frequency $l$:
+\begin{align*}
+    N_l(w_{k-n}, \ldots, w_{k-1}) = |\{ c(w_{k-n}, \ldots, w_{k-1}, w_k) = l \}|
+\end{align*}
+
+The modified KN smoothing then defines $\alpha$ in
+Eq.~\eqref{eq:n_gram_smoothing_general} to be
+\begin{align*}
+    \alpha(w_k | w_{k-n}, \ldots, w_{k-1}) =
+    \frac{
+        c(w_{k-n}, \ldots, w_{k-1}, w_k) - D(c(w_{k-n}, \ldots, w_{k-1}, w_k))
+    }{
+        \sum_{w' \in V} c(w_{k-n}, \ldots, w_{k-1}, w')
+    },
+\end{align*}
+where $D$ is
+\begin{align*}
+    D(c) = \left\{
+        \begin{array}{l l}
+            0,&\text{ if }c=0 \\
+            D_1,&\text{ if }c=1 \\
+            D_2,&\text{ if }c=2 \\
+            D_{3+},&\text{ if }c\geq 3 \\
+        \end{array}
+        \right.
+\end{align*}
+And, $\gamma$ is defined as
+\begin{align*}
+    \gamma(w_{k-n}, \ldots, w_{k-1})  = 
+    \frac{
+        D_1 N_1(w_{k-n}, \ldots, w_{k-1}) 
+        + D_2 N_2(w_{k-n}, \ldots, w_{k-1})
+        + D_{3+} N_{3+}(w_{k-n}, \ldots, w_{k-1})
+    }{
+        \sum_{w' \in V} c(w_{k-n}, \ldots, w_{k-1}, w')
+    }.
+\end{align*}
+
+For details on how this modified KN smoothing has been designed, see
+\cite{chen1996empirical}.
+
+
+
+
+%There are a number of considerations to be taken when designing this
+%coefficient function $\lambda$. 
 
 %{\em back-off} to lower-order $n$-grams when a given
 %$n$-gram did not occur in the training corpus. For instance, if ``chases a
 %llama'' has not at all in the training corpus, 
-
-\alert{TBD}
 
 \subsection{Lack of Generalization}
 
@@ -3666,9 +3771,6 @@ $n$-gram language modeling will be zero.\footnote{
 that it is not the lack of data, or $n$-grams, but the lack of generalization.
 In other words, there {\em exist} relevant $n$-grams in the training corpus, but
 $n$-gram language modelling is not able to exploit these.
-
-This lack of generalization implies that we need 
-
 
 \alert{TBD}
 
