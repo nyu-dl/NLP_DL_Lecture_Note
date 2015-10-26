@@ -78,6 +78,7 @@
 \newcommand{\vh}[0]{\vect{h}}
 \newcommand{\vv}[0]{\vect{v}}
 \newcommand{\vx}[0]{\vect{x}}
+\newcommand{\vp}[0]{\vect{p}}
 \newcommand{\vz}[0]{\vect{z}}
 \newcommand{\vw}[0]{\vect{w}}
 \newcommand{\vs}[0]{\vect{s}}
@@ -460,6 +461,7 @@ of language.
 
 
 \chapter{Function Approximation as Supervised Learning}
+\label{chap:function_approx}
 
 Throughout this course, we will extensively use artificial neural
 networks\footnote{
@@ -1048,8 +1050,10 @@ worse, it is likely that the domain knowledge is not correct, making the whole
 business of using manually extracted features futile.
 
 \chapter{Neural Networks and Backpropagation Algorithm}
+\label{chap:nn}
 
 \section{Conditional Distribution Approximation}
+\label{sec:distribution_approx}
 
 I have mainly described so far as if the function we approximate or the function
 we use to approximate returns only a constant value, as in one point $\vy$ in
@@ -1205,6 +1209,7 @@ the uncertainty due to the observational noise along with the most likely (or
 the average) prediction.
 
 \subsection{Other Distributions}
+\label{sec:other_dist}
 
 I have described two distributions (densities) that are widely used: 
 \begin{itemize}
@@ -1255,6 +1260,7 @@ where
 \end{align}
 
 \chapter{Feature Extraction is also a Function}
+\label{chap:feature_ext}
 
 We talked about the manual feature extraction in the previous lecture (see
 Sec.~\ref{sec:feature_extraction}. But, this is quite unsatisfactory, because
@@ -3768,18 +3774,190 @@ $n$-gram language modeling will be zero.\footnote{
     a''. In other words, we do not get any generalization based on the fact that
     a ``llama'' is an animal similar to a ``cat'', ``dog'' or ``rabbit''.
 } This issue is closely related to data sparsity, but the main difference is
-that it is not the lack of data, or $n$-grams, but the lack of generalization.
+that it is not the lack of data, or $n$-grams, but the lack of world knowledge.
 In other words, there {\em exist} relevant $n$-grams in the training corpus, but
 $n$-gram language modelling is not able to exploit these.
 
-\alert{TBD}
+At this point, it almost seems trivial to address this issue by incorporating
+existing knowledge into language modelling. For instance, one can think of using
+a dictionary to find the definition of a word in interest (continuing on from
+the previous example, the definition of ``llama'') and letting the language
+model notice that ``llama'' is a ``{\em a domesticated pack animal of the camel
+family found in the Andes, valued for its soft woolly fleece}.'' Based on this,
+the language model should figure out that the probability of ``chases a llama''
+should be similar to ``chases a cat'', ``chases a dog'' or ``chases a rabbit''
+because all ``cat'', ``dog'' and ``rabbit'' are animals according to the
+dictionary.
+
+This is however not satisfactory for us. First, those definitions are yet
+another natural language text, and letting the model understand it becomes
+equivalent to natural language understanding (which is the end-goal of this
+whole course!) Second, a dictionary or any human-curated knowledge base is
+an inherently limited resource. These are limited in the sense that they are
+often static (not changing rapidly to reflect the changes in language use) and
+are often too generic, potentially not capturing any domain-specific knowledge. 
+
+In the next section, I will describe an approach purely based on statistics of
+natural language that is able to alleviate this lack of generalization.
 
 \section{Neural Language Model}
+
+One thing we notice from $n$-gram language modelling is that this boils down to
+computing the conditional distribution of a next word $w_k$ given $n-1$
+preceding words $w_{k-n}, \ldots, w_{k-1}$. In other words, the goal of $n$-gram
+language modeling is to find a function that takes as input $n-1$ words and
+returns a conditional probability of a next word:
+\begin{align*}
+    p(w_k | w_{k-n}, \ldots, w_{k-1}) = f_{\TT}^{w_k} (w_{k-n}, \ldots,
+    w_{k-1}).
+\end{align*}
+This is almost exactly what we have learned throughout
+Chapters~\ref{chap:function_approx}--\ref{chap:feature_ext}.
+
+First, we should define the input to this language modelling function. Clearly
+the input will be a sequence of $n-1$ words, but the question is how each of
+these words will be represented. Since our goal is to put the least amount of
+prior knowledge, we want to represent each word such that each and every word in
+the vocabulary is equi-distant away from the others. One encoding scheme that
+achieves this goal is $1$-of-$K$ coding. 
+
+In this $1$-of-$K$ coding scheme, each word $i$ in the vocabulary $V$ is
+represented as a binary vector $\vw_i$ whose sum equals $1$. To denote the $i$-th
+word with the vector $\vw_i$, we set the $i$-th element of the vector $\vw_i$ to be
+$1$ (and consequently all the other elements are set to zero.) Mathematically,
+\begin{align}
+    \label{eq:one_hot_vector}
+    \vw_i = [0, 0, \ldots, \underbrace{1}_{\text{$i$-th element}}, \ldots,
+    0]^{\top} \in \{0,1\}^{|V|}
+\end{align}
+This kind of vector is often called a one-hot vector.
+
+It is easy to see that this encoding scheme perfectly fits our goal of having
+minimal prior, because
+\begin{align*}
+    |\vw_i - \vw_j| = \left\{
+        \begin{array}{l l}
+            1,&\text{ if }i\neq j \\
+            0,&\text{ otherwise}
+        \end{array}
+        \right.
+\end{align*}
+
+Now the input to our function is a sequence of $n-1$ such vectors, which I will
+denote by $(\vw^1, \vw^2, \ldots, \vw^{n-1})$. As we will use a neural network
+as a function approximator here,\footnote{
+    Obviously, this does not have to be true, but at the end of the day, it is
+    unclear if there is any parametric function approximation other than neural
+    networks.
+} 
+these vectors will be multiplied with a weight matrix $\mE$. After this, we get
+a sequence of continuous vectors $(\vp^1, \vp^2, \ldots, \vp^{n-1})$, where
+\begin{align*}
+    \vp^j = \mE^\top \vw^j
+\end{align*}
+and $\mE \in \RR^{|V| \times d}$. 
+
+Before continuing to build this function, let us see what it means to multiply
+the transpose of a matrix with an one-hot vector from left. Since only one of
+the elements of the one-hot vector is non-zero, all the rows of the matrix will
+be ignored except for the row corresponding to the index of the non-zero element
+of the one-hot vector. This row is multiplied by $1$, which simply gives us the
+same row as the result of this whole matrix--vector multiplication. In short,
+the multiplication of the transpose of a matrix with an one-hot vector is
+equivalent to {\em slicing out a single row from the matrix}.
+
+In other words, let 
+\begin{align*}
+    \mE = \left[ 
+        \begin{array}{l}
+            \ve_1 \\
+            \ve_2 \\
+            \vdots \\
+            \ve_{|V|}
+        \end{array}
+    \right],
+\end{align*}
+where $\ve_i \in \RR^d$. Then,
+\begin{align*}
+    \mE^\top \vw_i = \ve_i.
+\end{align*}
+
+This view has two consequences. First, in practice, it will be much more
+efficient computationally to implement this multiplication as a simple table
+look-up. For instance, in Python with NumPy, do
+\begin{verbatim}
+    p = E[i,:]
+\end{verbatim}
+instead of
+\begin{verbatim}
+    p = numpy.dot(E.T, w_i)
+\end{verbatim}
+
+Second, from this perspective, we can see each row of the matrix $\mE$ as a
+continuous-space representation of a corresponding word. $\ve_i$ will be a
+vector representation of the $i$-th word in the vocabulary $V$. This
+representation is often called a {\it word embedding} and should reflect the
+underlying meaning of the word. We will discuss this further later.
+
+Closely following \cite{bengio2006neural}, we will simply concatenate the
+continuous-space representations of the input words such that
+\begin{align*}
+    \vp = \left[ \vp^1; \vp^2; \ldots; \vp^{n-1}\right]^\top
+\end{align*}
+This vector $\vp$ is a representation of $n-1$ input words in a continuous
+vector space and often referred to as a {\em context vector}.
+
+This context vector is fed through a composition of nonlinear feature extraction
+layers. We can for instance apply the simple transformation layer from
+Eq.~\eqref{eq:layer} such that
+\begin{align*}
+    \vh = \tanh(\mW \vp + \vb),
+\end{align*}
+where $\mW$ and $\vb$ are the parameters. 
+
+Once a set of nonlinear layers has been applied to the context vector, it's time
+to compute the output probability distribution. In this case of language
+modelling, the distribution outputted by the function is a categorical
+distribution. We discussed how we can build a function to return a categorical
+distribution already in Sec.~\ref{sec:other_dist}. 
+
+As a recap, a categorical distribution defines a probability of one event
+happening among $K$ discrete events. The probability of the $k$-th event
+happening is often denoted as $\mu_k$, and
+\begin{align*}
+    \sum_{k=1}^K \mu_k = 1.
+\end{align*}
+Therefore, the function needs to return a $K$-dimensional vector $[\mu_1,\mu_2,
+\ldots, \mu_K ]$. In this case of language modelling, $K=|V|$ and $\mu_i$
+corresponds to the probability of the $i$-th word in the vocabulary for the next
+word.
+
+As discussed earlier in Sec.~\ref{sec:other_dist}, we can use softmax to compute
+each of those output probabilities:
+\begin{align*}
+    p(w_n = k | w_1, w_2, \ldots, w_{n-1}) = \mu_k = \frac{\exp(\vu_k^\top \vh +
+    c_k)}{\sum_{k'=1}^{|V|} \exp(\vu_{k'}^\top \vh + c_{k'})},
+\end{align*}
+where $\vu_k \in \RR^{\dim(\vh)}$. 
+
+This whole function is called a neural language model.  See Fig.~\ref{fig:nlm}
+for the graphical illustration of neural language model.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.5\textwidth]{figures/nlm.pdf}
+    \caption{Neural language model}
+    \label{fig:nlm}
+\end{figure}
+
+
 
 \alert{TBD}
 
 \subsection{Continuous Bag-of-Words Language Model: Maximum Pseudo-Likelihood
-Estimator}
+Approach}
+
+\cite{jernite2015fast}
 
 \alert{TBD}
 
