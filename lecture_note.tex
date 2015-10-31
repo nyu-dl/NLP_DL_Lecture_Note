@@ -3175,6 +3175,7 @@ of natural language use can be a strong indicator for determining the likely of
 a natural language sentence. 
 
 \subsection{What if those linguistic structures do exist}
+\label{sec:linguistic_lm}
 
 Of course, as we discussed earlier in Sec.~\ref{sec:wrong_route} and in this
 section, not everyone agrees.  This is due to the fact that a perfect
@@ -4236,7 +4237,10 @@ in Eq.~\eqref{eq:pl_cbow}, we do not have a good way to compute the full
 sentence probability under this model. Under certain conditions maximizing
 pseudo-likelihood indeed converges to the maximum likelihood solution, but this
 does not mean that we can use the product of all the conditionals as a
-replacement of the full sentence probability.
+replacement of the full sentence probability. However, this does not mean that
+we cannot use this MRF-LM as a language model, since given a fixed model, the
+pseudo-probability (the product of all the conditionals) can score different
+sentences. 
 
 This is in contrast to the neural language model we discussed earlier in
 Sec.~\ref{sec:nlm}. In the case of neural language model, we were able to
@@ -4258,12 +4262,87 @@ structures of words, and this has become one of the darling models by natural
 language processing researchers in recent years. We will discuss further in the
 next section.
 
-\section{Semi-Supervised Learning for Natural Language Processing with
+\subsection{Semi-Supervised Learning with
 Pretrained Word Embeddings}
 
-One of the by-products from these language models, both neural language model
-and continuous bag-of-words model, is the input weight matrix, or a word
-embedding matrix $\mE$ (see Eq.~\eqref{eq:word_emb}.)
+One thing I want to emphasize in these language models, including $n$-gram
+language model, neural language model and continuous bag-of-words model, is that
+they are purely {\em unsupervised}, meaning that all we need is a large corpus
+of unannotated text. This is one thing that makes this statistical approach to
+language modelling much more appealing than any other approach based on
+linguistic structures (see Sec.~\ref{sec:linguistic_lm} for a brief discussion.) 
+
+When it comes to neural language model and continuous bag-of-words model, we now
+know that these networks learn continuous vector representations of input words,
+target words and the context phrase ($\vh$ from Eq.~\eqref{eq:nlm_context}.) We
+also discussed how these vector representations encode similarities among
+different linguistic units, be it a word or a phrase. 
+
+What this implies is that once we train this type of language model on a large,
+or effectively infinite,\footnote{
+    Why? Because of almost universal broadband access to the Internet!
+}
+corpus of {\em unlabelled} text, we get good vectors for those linguistic units
+for free. Among these, word vectors, the rows of the input weight matrix $\mE$
+in Eq.~\eqref{eq:word_emb}, have been extensively used in many natural language
+processing applications in recent years since
+\cite{turian2010word,collobert2011natural}.
+
+Let us consider an extreme example of classifying each English word as either
+``positive'' or ``negative''. For instance, ``happy'' is positive, while ``sad''
+is negative. A training set of 2 examples--1 positive and 1 negative words-- is
+given. How would one build a classifier?\footnote{
+    Although the setting of 2 training examples is extreme, but the task itself
+    turned out to be not-so-extreme. In fact, there is multiple dictionaries of
+    words' sentiment maintained. For instance, check
+    \url{http://sentiwordnet.isti.cnr.it/search.php?q=llama}.
+}
+
+There are two issues here. First, it is unclear how we should represent the
+input, in this case a word. A good reader who has read this note so far will be
+clearly ready to use an one-hot vector and use a softmax layer in the output,
+and I commend you for that. However, this still does not solve a more serious
+issue which is that we have only {\em two} training examples!  All the word
+vectors, save for two vectors corresponding to the words in the training set,
+will not be updated at all.
+
+One way to overcome these two issues is to make somewhat strong, but reasonable
+assumption that {\em similar} input will have similar sentiments. This
+assumption is at the heart of semi-supervised learning~\cite{Chapelle2006}. It
+says that high-dimensional data points in effect lies on a lower-dimensional
+manifold, and the target values of the points on this manifold change smoothly.
+Under this assumption, if we can well model this lower-dimensional data manifold
+using unlabelled training examples, we can train a good classifier\footnote{
+    What do I mean by a good classifier? A good classifier is a classifier that
+    classifies {\em unseen} test examples well. See
+    Sec.~\ref{sec:model_selection}.
+} 
+
+And, guess what? We have access to this lower-dimensional manifold, which is
+represented by the set of {\em pretrained} word vectors $\mE$. Believing that
+similar words have similar sentiment and that these pretrained word vectors
+indeed well reflect similarities among words, let me build a simple nearest
+neighbour (NN) classifier which uses the pretrained word vectors:
+\begin{align*}
+    \text{NN}(w) = \left\{ \begin{array}{l l}
+            \text{positive},&\text{ if } \text{cos}(\ve_w,\ve_{\text{happy}}) > 
+            \text{cos}(\ve_w,\ve_{\text{bad}}) \\
+            \text{negative},&\text{ otherwise}
+        \end{array}
+    \right.,
+\end{align*}
+where $\text{cos}(\cdot, \cdot)$ is a cosine similarity defined as
+\begin{align*}
+    \text{cos}(\ve_i, \ve_j) = \frac{\ve_i^\top \ve_j}{\|\ve_i\| \|\ve_j\|}.
+\end{align*}
+
+%have gathered huge interests from natural language
+%processing researchers over recent years since
+%\cite{turian2010word,collobert2011natural}. 
+
+
+
+
 
 \alert{TBD}
 
