@@ -3159,7 +3159,9 @@ approaching natural language as a means for one to communicate ideas to a
 listener. In this sense, language use is a function which takes as input the
 surrounding environment, including the others' speech, and returns linguistic
 response, and this function is {\em not} given but learned via observing others'
-use of language (\alert{TBD: some citation on baby's language learning}) and the
+use of language 
+%(\alert{TBD: some citation on baby's language learning}) 
+and the
 reinforcement by the surrounding environment~\cite{skinner2014verbal}. Also,
 throughout this course, we are not concerned too much about the existing
 syntactic, or grammatical, structures underlying natural language, which makes
@@ -3802,6 +3804,7 @@ In the next section, I will describe an approach purely based on statistics of
 natural language that is able to alleviate this lack of generalization.
 
 \section{Neural Language Model}
+\label{sec:nlm}
 
 One thing we notice from $n$-gram language modelling is that this boils down to
 computing the conditional distribution of a next word $w_k$ given $n-1$
@@ -4088,10 +4091,10 @@ principal component analysis (PCA) or t-SNE~\cite{VanDerMaaten08}, can be used
 to project each high-dimensional word vector into a lower-dimensional space
 (often 2-D or 3-D). 
 
-This input weight matrix, or oft-called a word embedding matrix, has been found
-to have an interesting use case.
-
-\alert{TBD}
+%This input weight matrix, or oft-called a word embedding matrix, has been found
+%to have an interesting use case.
+%
+%\alert{TBD}
 
 
 \subsection{Continuous Bag-of-Words Language Model: Maximum Pseudo-Likelihood
@@ -4192,7 +4195,16 @@ Do you see a stark similarity to neural language model we discussed earlier?
 This conditional probability is a shallow neural network with a single {\em
 linear} hidden layer whose input are the context words ($n$ preceding and $n$
 following words) and the output is the conditional distribution of the center
-word $w_i$. We will talk about this shortly in more depth.
+word $w_i$. We will talk about this shortly in more depth. See
+Fig.~\ref{fig:cbow} for graphical illustration.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.5\textwidth]{figures/cbow.pdf}
+    \caption{Continuous Bag-of-Words model approximates the conditional
+    distribution over the $j$-th word $w_j$ under the MRF-LM.}
+    \label{fig:cbow}
+\end{figure}
 
 Now we know that it is often difficult to compute the full sentence probability
 $p(w^1, \ldots, w^T)$ due to the intractable normalization constant $Z$. We
@@ -4209,15 +4221,49 @@ maximize pseudo-likelihood \cite{besag1975statistical} instead.\footnote{
 }
 
 Pseudo-likelihood of the MRF-LM is defined as
-\begin{align*}
-    \PL = \prod_{i=1}^T p(w^i | w^{i-n}, \ldots, w^{i-1}, w^{i+1}, \ldots,
+\begin{align}
+    \label{eq:pl_cbow}
+    \log \PL = \sum_{i=1}^T \log p(w^i | w^{i-n}, \ldots, w^{i-1}, w^{i+1}, \ldots,
     w^{i+n}).
-\end{align*}
-Maximizing this pseudo-likelihood is equivalent to training a neural network
-which approximates each conditional distribution $p(w^i | w^{i-n}, \ldots,
-w^{i-1}, w^{i+1}, \ldots, w^{i+n})$ to give a higher probability to the
-ground-truth center word in the training corpus.
+\end{align}
+Maximizing this pseudo-likelihood is equivalent to training a neural network in
+Fig.~\ref{fig:cbow} which approximates each conditional distribution $p(w^i |
+w^{i-n}, \ldots, w^{i-1}, w^{i+1}, \ldots, w^{i+n})$ to give a higher
+probability to the ground-truth center word in the training corpus.
 
+Unfortunately, even after training the model by maximizing the pseudo-likelihood
+in Eq.~\eqref{eq:pl_cbow}, we do not have a good way to compute the full
+sentence probability under this model. Under certain conditions maximizing
+pseudo-likelihood indeed converges to the maximum likelihood solution, but this
+does not mean that we can use the product of all the conditionals as a
+replacement of the full sentence probability.
+
+This is in contrast to the neural language model we discussed earlier in
+Sec.~\ref{sec:nlm}. In the case of neural language model, we were able to
+compute the probability of a given sentence by computing the conditional
+probability of each word, reading from left until the end of the sentence. This
+is perhaps one of the reasons why the MRF-LM is not often used in practice as a
+language model. Then, you must ask why I even bothered to explain this MRF-LM in
+the first place.
+
+This approach, which was proposed in \cite{mikolov2013efficient} as a
+continuous bag-of-words (CBoW) model,\footnote{
+    One difference between the model we derived in this section starting from
+    the MRF-LM and the one proposed in \cite{mikolov2013efficient} is that in
+    our derivation, the neural network shares a single weight matrix $\mE$ for
+    both the input and output layers.
+} was found to exhibit an interesting property. That is, the word embedding
+matrix $\mE$ learned as a part of this CBoW model very well reflects underlying
+structures of words, and this has become one of the darling models by natural
+language processing researchers in recent years. We will discuss further in the
+next section.
+
+\section{Semi-Supervised Learning for Natural Language Processing with
+Pretrained Word Embeddings}
+
+One of the by-products from these language models, both neural language model
+and continuous bag-of-words model, is the input weight matrix, or a word
+embedding matrix $\mE$ (see Eq.~\eqref{eq:word_emb}.)
 
 \alert{TBD}
 
