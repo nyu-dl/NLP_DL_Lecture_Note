@@ -145,6 +145,7 @@
 \DeclareMathOperator*{\argmin}{\arg \min}
 \newcommand{\newln}{\\&\quad\quad{}}
 
+\newcommand{\PL}{\text{PL}}
 \newcommand{\MatSum}{\text{MatSum}}
 \newcommand{\MatMul}{\text{MatMul}}
 \newcommand{\KL}{\text{KL}}
@@ -3867,7 +3868,8 @@ the multiplication of the transpose of a matrix with an one-hot vector is
 equivalent to {\em slicing out a single row from the matrix}.
 
 In other words, let 
-\begin{align*}
+\begin{align}
+    \label{eq:word_emb}
     \mE = \left[ 
         \begin{array}{l}
             \ve_1 \\
@@ -3876,7 +3878,7 @@ In other words, let
             \ve_{|V|}
         \end{array}
     \right],
-\end{align*}
+\end{align}
 where $\ve_i \in \RR^d$. Then,
 \begin{align*}
     \mE^\top \vw_i = \ve_i.
@@ -3897,7 +3899,7 @@ Second, from this perspective, we can see each row of the matrix $\mE$ as a
 continuous-space representation of a corresponding word. $\ve_i$ will be a
 vector representation of the $i$-th word in the vocabulary $V$. This
 representation is often called a {\it word embedding} and should reflect the
-underlying meaning of the word. We will discuss this further later.
+underlying meaning of the word. We will discuss this further shortly.
 
 Closely following \cite{bengio2006neural}, we will simply concatenate the
 continuous-space representations of the input words such that
@@ -3910,9 +3912,10 @@ vector space and often referred to as a {\em context vector}.
 This context vector is fed through a composition of nonlinear feature extraction
 layers. We can for instance apply the simple transformation layer from
 Eq.~\eqref{eq:layer} such that
-\begin{align*}
+\begin{align}
+    \label{eq:nlm_context}
     \vh = \tanh(\mW \vp + \vb),
-\end{align*}
+\end{align}
 where $\mW$ and $\vb$ are the parameters. 
 
 Once a set of nonlinear layers has been applied to the context vector, it's time
@@ -3934,30 +3937,287 @@ word.
 
 As discussed earlier in Sec.~\ref{sec:other_dist}, we can use softmax to compute
 each of those output probabilities:
-\begin{align*}
+\begin{align}
+    \label{eq:nlm_softmax}
     p(w_n = k | w_1, w_2, \ldots, w_{n-1}) = \mu_k = \frac{\exp(\vu_k^\top \vh +
     c_k)}{\sum_{k'=1}^{|V|} \exp(\vu_{k'}^\top \vh + c_{k'})},
-\end{align*}
+\end{align}
 where $\vu_k \in \RR^{\dim(\vh)}$. 
 
-This whole function is called a neural language model.  See Fig.~\ref{fig:nlm}
+This whole function is called a neural language model.  See
+Fig.~\ref{fig:nlm}~(a)
 for the graphical illustration of neural language model.
 
-\begin{figure}[ht]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=0.5\textwidth]{figures/nlm.pdf}
-    \caption{Neural language model}
+    \begin{minipage}[!b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.9\columnwidth]{figures/nlm.pdf}
+    \end{minipage}
+    \begin{minipage}[!b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.9\columnwidth]{figures/cslm.pdf}
+    \end{minipage}
+    \begin{minipage}[!b]{0.49\textwidth}
+        \centering
+        (a)
+    \end{minipage}
+    \begin{minipage}[!b]{0.49\textwidth}
+        \centering
+        (b)
+    \end{minipage}
+    \caption{(a) Schematics of neural language model. (b) Example of how neural language model generalizes to an unseen
+    $n$-gram.}
     \label{fig:nlm}
 \end{figure}
 
+\subsection{How does Neural Language Model Generalize to Unseen $n$-Grams? --
+Distributional Hypothesis}
 
+Now that we have described neural language model, let us take a look into what
+happens inside. Especially, we will focus on how the model generalizes to unseen
+$n$-grams.
+
+The previously described neural language model can be thought of as a composite
+of two function ($g \circ f$). The first stage $f$ projects a sequence of
+context words, or preceding $n-1$ words to a continuous vector space:
+\begin{align*}
+    f: \left\{ 0, 1\right\}^{|V| \times n-1} \to \RR^d
+\end{align*}
+We will call the resulting vector $\vh$ a {\em context vector}.
+The second stage $g$ maps this continuous vector $\vh$ to the target word
+probability, by applying affine transformation to the vector $\vh$ followed by
+softmax normalization. 
+
+Let us look more closely at what $g$ does in Eq.~\eqref{eq:nlm_softmax}. If we
+ignore the effect of the bias $c_k$ for now, we can clearly see that the
+probability of the $k$-th word in the vocabulary is large when the output vector
+$\vu_k$ (or the $k$-th row of the output matrix $\mU$) is well aligned with the
+context vector $\vh$. In other words, the probability of the next word being the
+$k$-th word in the vocabulary is roughly proportional to the inner product
+between the context vector $\vh$ and the corresponding target word vector
+$\vu_k$.
+
+Now note that the dot product is a linear function. Given a fixed target word
+vector $\vu_k$, the ordering of three context vectors based on the mutual
+distances is preserved even after multiplying each of them with $\vu_k$. This is
+easy to check by observing that
+\begin{align*}
+    \| \vu_k^\top \vh_i - \vu_k^\top \vh_j \|^2 = \underbrace{\vu_k^\top
+    \vu_k}_{=\text{constant}} \| \vh_i -
+    \vh_j \|^2,
+\end{align*}
+meaning that the distance after the dot product with $\vu_k$ is simply elongated
+by the norm of $\vu_k$.
+
+What does this mean? This means that the neural language model must project
+$(n-1)$-grams that are followed by the same word to nearby points in the context
+vector space, while keeping the other $n$-grams away from that neighbourhood.
+This is necessary in order to give a similar probability to the same word. If
+two $(n-1)$-grams, which are followed by the same word in the training corpus,
+are projected to far away points in the context vector space, it naturally
+follows from this argument that the probability over the next word will differ
+substantially, resulting in a bad language model.
+
+Let us consider an extreme example, where we do bigram modeling with the
+training corpus comprising only three sentences:
+\begin{itemize}
+    \itemsep 0em
+    \item There are {\bf three teams} left for the qualification.
+    \item {\bf four teams} have passed the first round.
+    \item {\bf four groups} are playing in the field.
+\end{itemize}
+We will focus on the bold-faced phrases; ``three teams'', ``four teams'' and
+``four group''. The first word of each of these bigrams is a context word, and
+neural language model is asked to compute the probability of the word following
+the context word.
+
+It is important to notice that neural language model {\em must} project
+``three'' and ``four'' to nearby points in the context space (see
+Eq.~\eqref{eq:nlm_context}.) This is because the context vectors from these two
+words need to give a similar probability to the word ``teams''. This naturally
+follows from our discussion earlier on how dot product preserves the ordering in
+the space. And, from these two context vectors (which are close to each other),
+the model assigns similar probabilities to ``teams'' and ``groups'', because
+they occur in the training corpus. In other words, the target word vector
+$\vu_{\text{teams}}$ and $\vu_{\text{groups}}$ will also be similar to each
+other, because otherwise the probability of ``teams'' given ``four''
+($p(\text{teams} | \text{four})$) and
+``groups'' given ``four'' ($p(\text{groups} | \text{four})$) will be very
+different despite the fact that they occurred equally likely in the training
+corpus.
+
+Now, let's assume the case where we use the neural language model trained on
+this tiny training corpus to assign a probability to an unseen bigram ``three
+groups''. The neural language model will project the context word ``three'' to a
+point in the context space close to the point of ``four''. From this context
+vector, the neural language model will {\em have to} assign a high probability
+to the word ``groups'', because the context vector $\vh_{\text{three}}$ and the
+target word vector $\vu_{\text{groups}}$ well align. Thereby, even without ever
+seeing the bigram ``three groups'', the neural language model can assign a
+reasonable probability. See Fig.~\ref{fig:nlm}~(b) for graphical
+illustration.
+
+What this example shows is that neural language model automatically learns the
+similarity among different context words (via context vectors $\vh$), and also among
+different target words (via target word vectors $\vu_k$), by exploiting {\em
+co-occurrences} of words. In this example, the neural language model learned
+that ``four'' and ``three'' are similar from the fact that both of them occur
+together with ``teams''. Similarly, in the target side, the neural language
+model was able to capture the similarity between ``teams'' and ``groups'' by
+noticing that they both follow a common word ``four''.
+
+This is a clear, real-world demonstration of the so-called distributional
+hypothesis. Distributional hypothesis states that ``words which are similar in
+meaning appear in similar distributional contexts'' \cite{firth1957}. By
+observing which words a given word co-occurs together, it is possible to peek
+into the word's underlying meaning. Of course, this is only a partial
+picture\footnote{
+    We will discuss why this is only a partial picture later on.
+}
+into the underlying meaning of each word, or as a matter of fact a phrase, but
+surely still a very interesting property that is being naturally exploited by
+neural language model.
+
+In neural language model, the most direct way to observe the effect of this
+distributional hypothesis/structure is to investigate the first layer's weight
+matrix $\mE$ in Eq.~\eqref{eq:word_emb}. This weight matrix can be considered as
+a set of dense vectors of the words in the input vocabulary $\left\{ \ve_1,
+\ve_2, \ldots, \ve_{|V|}\right\}$, and any visualization technique, such as
+principal component analysis (PCA) or t-SNE~\cite{VanDerMaaten08}, can be used
+to project each high-dimensional word vector into a lower-dimensional space
+(often 2-D or 3-D). 
+
+This input weight matrix, or oft-called a word embedding matrix, has been found
+to have an interesting use case.
 
 \alert{TBD}
+
 
 \subsection{Continuous Bag-of-Words Language Model: Maximum Pseudo-Likelihood
 Approach}
 
-\cite{jernite2015fast}
+This is about time someone asks a question why we are only considering the {\em
+preceding} words when doing language modelling. Is it a good assumption that the
+conditional distribution over a word is only dependent on preceding words? 
+
+In fact, we do not have to do so. We can certainly model a natural language
+sentence such that each word in a sentence is conditioned on $2n$ surrounding
+words ($n$ words to the left and $n$ words to the right.) In this case, we get a
+{\em Markov random field (MRF) language model}~\cite{jernite2015fast}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{figures/mrflm.pdf}
+    \caption{An example Markov random field language model (MRF-LM) with the
+    order $n=1$.}
+    \label{fig:mrf_lm}
+\end{figure}
+
+In a Markov random field (MRF) language model (MRF-LM), we say each word in a
+given sentence is a random variable $w_i$. We connect each word with its $2n$
+surrounding words with {\em undirected} edges, and these edges represent the
+conditional dependency structure of the whole MRF-LM. An example of an MRF-LM
+with $n=1$ is shown in Fig.~\ref{fig:mrf_lm}.
+
+A probability over a Markov random field is defined as a product of clique
+potentials. A potential is defined for each clique as a positive function whose
+input is the values of the random variables in the clique. In the case of
+MRF-LM, we will assign $1$ as a potential to every clique except for cliques of
+two random variables (in other words, we only use pairwise potentials only.) The
+pairwise potential between the words $i$ and $j$ is defined as
+\begin{align*}
+    \phi(\vw^i, \vw^j) = \exp\left( (\mE^\top \vw^{i})^\top  \mE^\top \vw^j\right) = 
+    \exp\left( \ve_{w^i}^\top \ve_{w^j} \right),
+\end{align*}
+where $\mE$ is from Eq.~\eqref{eq:word_emb}, and $\vw^i$ is the one-hot
+vector of the $i$-th word. One must note that this is one possible
+implementation of the pairwise potential, and there may be other possibilities,
+such as to replace the dot product between the word vectors ($\ve_{w_i}^\top
+\ve_{w_j}$) with a deeper network.
+
+With this pairwise potential, the probability over the whole sentence is defined
+as
+\begin{align*}
+    p(w_1, w_2, \ldots, w_T) = \frac{1}{Z} \prod_{t=1}^{T-n} \prod_{j=t}^{t+n}
+    \phi(\vw^t, \vw^j) = \frac{1}{Z} \exp\left( 
+        \sum_{t=1}^{T-n} \ve_{w^t}^\top \ve_{w^j}
+    \right),
+\end{align*}
+where $Z$ is the normalization constant. This normalization constant makes the
+product of the potentials to be a probability and often is at the core of
+computational intractability in Markov random fields.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{figures/mrflm_mblanket.pdf}
+    \caption{Gray nodes indicate the 
+    Markov blank of the fourth word.}
+    \label{fig:mrf_lm_mblanket}
+\end{figure}
+
+Although compute the full sentence probability is intractable in this MRF-LM, it
+is quite straightforward to compute the conditional probability of each word
+$w^i$ given all the other words. When computing the conditional probability, we
+must first notice that the conditional probability of $w^i$ {\em only} depends
+on the values of other words included in its {\em Markov blanket.} In the case
+of Markov random fields, the Markov blanket of a random variable is defined as a
+set of all {\em immediate neighbours}, and it implies that the conditional
+probability of $w^i$ is dependent only on $n$ preceding words and the $n$
+following words. See Fig.~\ref{fig:mrf_lm_mblanket} for an example.
+
+Keeping this in mind, we can easily see that
+\begin{align*}
+    p(w^i|w^{i-n}, \ldots, w^{i-1}, w^{i+1}, \ldots, w^{i+n})
+    = \frac{1}{Z'} \exp\left(\ve_{w^i}^\top \left( 
+            \sum_{k=1}^n 
+            \ve_{w^{i-k}}
+            +
+            \sum_{k=1}^n 
+            \ve_{w^{i+k}}
+    \right)\right),
+\end{align*}
+where $Z'$ is a normalization constant computed by
+\begin{align*}
+    Z' = \sum_{v \in V} \exp\left( \ve_v^\top \left( 
+            \sum_{k=1}^n 
+            \ve_{w^{i-k}}
+            +
+            \sum_{k=1}^n 
+            \ve_{w^{i+k}}
+    \right)\right).
+\end{align*}
+
+Do you see a stark similarity to neural language model we discussed earlier?
+This conditional probability is a shallow neural network with a single {\em
+linear} hidden layer whose input are the context words ($n$ preceding and $n$
+following words) and the output is the conditional distribution of the center
+word $w_i$. We will talk about this shortly in more depth.
+
+Now we know that it is often difficult to compute the full sentence probability
+$p(w^1, \ldots, w^T)$ due to the intractable normalization constant $Z$. We
+however know how to compute the conditional probabilities (for all words) quite
+tractably. The former fact implies that it is perhaps not the best idea to
+maximize log-likelihood to train this model.\footnote{
+    However this is not to say maximum likelihood in this case is impossible.
+    There are different ways to approximate the full sentence probability under
+    this model. See \cite{jernite2015fast} for one such approach.
+} The latter however sheds a bit of light, because we can train a model to
+maximize pseudo-likelihood \cite{besag1975statistical} instead.\footnote{
+    See the note by Amir Globerson (later modified by David Sontag) available at
+    \url{http://cs.nyu.edu/~dsontag/courses/inference14/slides/pseudolikelihood_notes.pdf}.
+}
+
+Pseudo-likelihood of the MRF-LM is defined as
+\begin{align*}
+    \PL = \prod_{i=1}^T p(w^i | w^{i-n}, \ldots, w^{i-1}, w^{i+1}, \ldots,
+    w^{i+n}).
+\end{align*}
+Maximizing this pseudo-likelihood is equivalent to training a neural network
+which approximates each conditional distribution $p(w^i | w^{i-n}, \ldots,
+w^{i-1}, w^{i+1}, \ldots, w^{i+n})$ to give a higher probability to the
+ground-truth center word in the training corpus.
+
 
 \alert{TBD}
 
