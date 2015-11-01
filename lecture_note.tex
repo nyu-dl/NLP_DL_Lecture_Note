@@ -145,6 +145,7 @@
 \DeclareMathOperator*{\argmin}{\arg \min}
 \newcommand{\newln}{\\&\quad\quad{}}
 
+\newcommand{\PPL}{\text{PPL}}
 \newcommand{\PL}{\text{PL}}
 \newcommand{\MatSum}{\text{MatSum}}
 \newcommand{\MatMul}{\text{MatMul}}
@@ -1260,8 +1261,8 @@ where
         \right.
 \end{align}
 
-\chapter{Feature Extraction is also a Function}
-\label{chap:feature_ext}
+\section{Feature Extraction is also a Function}
+\label{sec:feature_ext}
 
 We talked about the manual feature extraction in the previous lecture (see
 Sec.~\ref{sec:feature_extraction}. But, this is quite unsatisfactory, because
@@ -1587,7 +1588,7 @@ For $c$, it's straightforward, since
 \end{align*}
 
 
-\subsection{Automating Backpropagation}
+\section{Automating Backpropagation}
 \label{sec:autodiff}
 
 This procedure, presented as two examples, is called a {\em backpropagation}
@@ -2176,10 +2177,11 @@ processing the next word, we will first predict the label of the $t$-th input
 word $x_t$.
 
 This can be done by 
-\begin{align*}
-    \mu_t = \left[ \mu_{t,1}, \mu_{t,2}, \mu_{t,3}, \mu_{t,4} \right]^\top = \softmax(\mV
-    \vh_{t}).
-\end{align*}
+\begin{align}
+    \label{eq:rnn_y_h}
+    \mu_t = \left[ \mu_{t,1}, \mu_{t,2}, \mu_{t,3}, \mu_{t,4} \right]^\top =
+    \softmax(\mV \vh_{t}).
+\end{align}
 Four $\mu_{t,i}$'s correspond to the probabilities of the four categories; (1)
 noun, (2) verb, (3) adjective and (4) others.
 
@@ -2437,6 +2439,7 @@ See Fig.~\ref{fig:gru} for the graphical illustration.
 \end{figure}
 
 \subsection{Gated Recurrent Units}
+\label{sec:gru}
 
 Now here goes a big question: {\em How are the update $\vu$ and reset $\vr$
 gates computed?}
@@ -3256,7 +3259,7 @@ However, there are a few issues here. First, it is not clear which formalism $G$
 follows, and we have briefly discussed about this at the very beginning of this
 course. Second, it is quite well known that most of the formalisms do indeed
 have uncertainty in inference. Again, we looked at one particular example in
-Sec.~\cite{sec:language_understanding_wrong}. These two issues make many people,
+Sec.~\ref{sec:language_understanding_wrong}. These two issues make many people,
 including myself, quite uneasy about this type of {\em model-based} approaches. 
 
 In the remaining of this chapter, I will thus talk about model-free approaches
@@ -3382,7 +3385,7 @@ This is equivalent to counting how many times $S$ occurs in the data.\footnote{
     corpus}. 
 }
 
-\subsection{Data Sparsity}
+\subsection{Data Sparsity/Scarcity}
 \label{sec:data_sparsity}
 
 Has this solved the whole problem of language model? No, unfortunately not. The
@@ -3454,6 +3457,7 @@ In the next section, we will discuss the most straightforward approach to
 addressing this issue of data sparsity.
 
 \section{$n$-Gram Language Model}
+\label{sec:n_gram_lm}
 
 The fact that the issue of data sparsity worsens as the maximum length of
 sentences grows hints us a straightforward approach to addressing this: {\em
@@ -3816,8 +3820,8 @@ returns a conditional probability of a next word:
     p(w_k | w_{k-n}, \ldots, w_{k-1}) = f_{\TT}^{w_k} (w_{k-n}, \ldots,
     w_{k-1}).
 \end{align*}
-This is almost exactly what we have learned throughout
-Chapters~\ref{chap:function_approx}--\ref{chap:feature_ext}.
+This is almost exactly what we have learned in
+Chapter~\ref{chap:function_approx}.
 
 First, we should define the input to this language modelling function. Clearly
 the input will be a sequence of $n-1$ words, but the question is how each of
@@ -3977,6 +3981,7 @@ for the graphical illustration of neural language model.
 
 \subsection{How does Neural Language Model Generalize to Unseen $n$-Grams? --
 Distributional Hypothesis}
+\label{sec:distributional}
 
 Now that we have described neural language model, let us take a look into what
 happens inside. Especially, we will focus on how the model generalizes to unseen
@@ -4262,6 +4267,34 @@ structures of words, and this has become one of the darling models by natural
 language processing researchers in recent years. We will discuss further in the
 next section.
 
+\paragraph{Skip-Gram and Implicit Matrix Factorization}
+
+In \cite{mikolov2013efficient}, another model, called skip-gram, is proposed.
+The skip-gram model is built by flipping the continuous bag-of-words model.
+Instead of trying to predict the middle word given $2n$ surrounding words, the
+skip-gram model tries to predict randomly chosen one of the $2n$ surrounding
+words given the middle word. From this description alone, it is quite clear that
+this skip-gram model is not going to be great as a language model. However, it
+turned out that the word vectors obtained by training a skip-gram model were as
+good as those obtained by either a continuous bag-of-words model or any other
+neural language model. Of course, it is debatable which criterion be used to
+determine the goodness of word vectors, but in many of the existing so-called
+``intrinsic'' evaluations, those obtained from a skip-gram model have been shown
+to excel.
+
+The authors of \cite{Omer2014} recently showed that training a skip-gram model
+with negative sampling (see \cite{mikolov2013efficient}) is equivalent to
+factorizing a positive point-wise mutual information matrix (PPMI) into two
+lower-dimensional matrices. The left lower-dimensional matrix corresponds to the
+input word embedding matrix $\mE$ in a skip-gram model. In other words, training
+a skip-gram model {\em implicitly} factorizes a PPMI matrix. 
+
+Their work drew a nice connection between the existing works on distributional word
+representations from natural language processing, or even computational
+linguistics and these more recent neural approaches. I will not go into any
+further detail in this course, but I encourage readers to read \cite{Omer2014}.
+
+
 \subsection{Semi-Supervised Learning with
 Pretrained Word Embeddings}
 
@@ -4286,7 +4319,7 @@ corpus of {\em unlabelled} text, we get good vectors for those linguistic units
 for free. Among these, word vectors, the rows of the input weight matrix $\mE$
 in Eq.~\eqref{eq:word_emb}, have been extensively used in many natural language
 processing applications in recent years since
-\cite{turian2010word,collobert2011natural}.
+\cite{turian2010word,collobert2011natural,mikolov2013efficient}.
 
 Let us consider an extreme example of classifying each English word as either
 ``positive'' or ``negative''. For instance, ``happy'' is positive, while ``sad''
@@ -4336,19 +4369,329 @@ where $\text{cos}(\cdot, \cdot)$ is a cosine similarity defined as
     \text{cos}(\ve_i, \ve_j) = \frac{\ve_i^\top \ve_j}{\|\ve_i\| \|\ve_j\|}.
 \end{align*}
 
-%have gathered huge interests from natural language
-%processing researchers over recent years since
-%\cite{turian2010word,collobert2011natural}. 
+This use of a term ``similarity'' almost makes this set of pretrained word
+vectors look like some kind of magical wand that can solve everything.\footnote{
+    For future reference, I must say there were many papers claiming that the
+    pretrained word vectors are indeed magic wands at three top-tier natural
+    language processing conferences (ACL, EMNLP, NAACL) in 2014 and 2015.
+} This is however not true, and using pretrained word vectors must be done with
+caution. 
 
+Why should we be careful in using these pretrained word vectors? We must
+remember that these word vectors were obtained by training a neural network to
+maximize a certain objective, or to minimize a certain cost function. This means
+that these word vectors capture certain aspects of words' underlying structures
+that are necessary to achieve the training objective, and that there is no
+reason for these word vectors to capture any other properties of the words that
+are not necessary for maximizing the training objective.  In other words,
+``similarity'' among multiple words has many different aspects, and these word
+vectors will capture only a few of these many aspects. Which few aspects will be
+determined by the choice of training objective.
 
+The hope is that language modelling is a good training objective that will
+encourage the word vectors to capture as many aspects of similarity as
+possible.\footnote{
+    Some may ask how a single vector, which is a point in a space, can capture
+    multiple aspects of similarity. This is possible because these word vectors
+    are high-dimensional.
+} But, is this true in general? 
 
+Let's consider an example of words describing emotions, such as ``happy'',
+``sad'' and ``angry'', in the context of a continuous bag-of-words model. These
+emotion-describing words often follow some forms of a verb ``feel'', such as
+``feel'', ``feels'', ``felt'' and ``feeling''. This means that those
+emotion-describing words will have to be projected nearby in the context space
+in order to give a high probability to those forms of ``feel'' as a middle word.
+This is understandable and agrees quite well with our intuition. All those
+emotion-describing words are similar to each other in the sense that they all
+describe emotion. But, wait, this aspect of similarity is not going to help
+sentiment classification of words. In fact, this aspect of similarity will {\em
+hurt} the sentiment classifier, because a positive word ``happy'' will be close
+to negative words ``sad'' and ``angry'' in this word vector space!
 
+The lesson here is that when you are solving a language-related task with very
+little data, it is a good idea to consider using a set of pretrained word
+vectors from neural language models. However, you must do so in caution, and
+perhaps try to pretrain your own word vectors by training a neural network to
+maximize a certain objective that better suits your final task.
 
-\alert{TBD}
+But, then, what other training objectives are there? We will get to that later.
 
 \section{Recurrent Language Model}
 
+Neural language model indeed avoids the lack of generalization in the
+conventional $n$-gram language modeling. It still assumes the $n$-th order
+Markov property, meaning that it looks only as far back into the past as $n-1$
+words. In Sec.~\ref{sec:n_gram_lm}, I gave an example of ``In Korea, more than
+half of all the residents speak Korean''. In this example, the conditional
+distribution over the last word in the sentence clearly will be better estimated
+if it is conditioned on the second word of the sentence which is more than 10
+words back in the past.
+
+Let us recall what we learned in Sec.~\ref{sec:rnn_x_y}. There, we learn how to
+build a recurrent neural network to read a variable-length sequence and return a
+variable-length output sequence. An example we considered back then was a task
+of part-of-speech tagging, where the input is a sentence such as
+\begin{align*}
+    x = (\text{Children}, \text{eat}, \text{sweet}, \text{candy}),
+\end{align*}
+and the target output is a sequence of part-of-speech tags such as
+\begin{align*}
+    y = (\text{noun}, \text{verb}, \text{adjective}, \text{noun}).
+\end{align*}
+
+In order to make less of an assumption on the conditional independence of the
+predicted tags, we made a small adjustment such that the prediction $Y_{t}$ at
+each timestep was fed back into the recurrent neural network in the next
+timestep together with the input $X_{t+1}$. See Fig.~\ref{fig:rnn_lm}~(a) for
+graphical illustration.
+
+\begin{figure}[t]
+    \centering
+    \begin{minipage}{0.44\textwidth}
+        \centering
+        \includegraphics[width=0.95\columnwidth]{figures/rnn_same_length.pdf}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.55\textwidth}
+        \centering
+        \includegraphics[width=0.95\columnwidth]{figures/rnn_lm.pdf}
+    \end{minipage}
+
+    \begin{minipage}{0.44\textwidth}
+        \centering
+        (a)
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.55\textwidth}
+        \centering
+        (b)
+    \end{minipage}
+
+    \caption{
+        (a) A recurrent neural network from Sec.~\ref{sec:rnn_x_y}. (b) A
+        recurrent neural network language model.
+    }
+    \label{fig:rnn_lm}
+\end{figure}
+
+Why am I talking about this again, after saying that the task of part-of-speech
+tagging is not even going to be considered as a valid topic for the final
+project? Because the very same model for part-of-speech tagging will be turned
+into the very {\em recurrent neural network language model} in this section.
+
+Let us start by considering a single conditional distribution, marked (a) below,
+from the full sentence probability:
+\begin{align*}
+    p(w^1, w^2, \ldots, w^T) = \prod_{t=1}^T \underbrace{p(w^t|w^1, \ldots,
+    w^{t-1})}_{(a)}.
+\end{align*}
+This conditional probability can be approximated by a neural network, as we've
+been doing over and over again throughout this course, that takes as input
+$(w^1, \ldots, w^{t-1})$ and returns the probability over all possible words in
+the vocabulary $V$.  This is not unlike neural language model we discussed
+earlier in Sec.~\ref{sec:nlm}, except that the input is now a variable-length
+sequence.
+
+In this case, we can use a recurrent neural network which is capable of
+summarizing/memorizing a variable-length input sequence.  A recurrent neural
+network summarizes a given input sequence $(w^1, \ldots, w^{t-1})$ into a memory
+state $\vh^{t-1}$:
+\begin{align}
+    \label{eq:rnnlm_iteration}
+    \vh^{t'} = \left\{
+        \begin{array}{l l}
+            0,&\text{ if }t'=0 \\
+            f(\ve_{w^{t'}}, \vh^{t'-1}),&\text{ otherwise}
+        \end{array}
+        \right.,
+\end{align}
+where $t'$ runs from $0$ to $t-1$.  $f$ is a recurrent function which can be any
+of a naive transition function from Eq.~\eqref{eq:rnn_layer}, a gated recurrent
+unit or a long short-term memory unit from Sec.~\ref{sec:gru}. $\ve_{w^{t'}}$ is
+a word vector corresponding to the word $w^{t'}$.
+
+This summary $\vh^{t-1}$ is affine-transformed followed by a softmax nonlinear
+function to compute the conditional probability of $w^t$. Hopefully, everyone
+remembers how it is done. As in Eq.~\eqref{eq:rnn_y_h}, 
+\begin{align*}
+    \vmu = \softmax(\mV \vh^{t-1}),
+\end{align*}
+where $\vmu$ is a vector of probabilities of all the words in the vocabulary.
+
+One thing to notice here is that the iteration procedure in
+Eq.~\eqref{eq:rnnlm_iteration} computes a sequence of every memory state vector
+$\vh^t$ by simply reading the input sentence {\em once}. In other words, we can
+let the recurrent neural network read one word $w^t$ at a time, update the
+memory state $\vh^t$ and compute the conditional probability of the {\em next}
+word $p(w^{t+1}|w^{\leq t})$. 
+
+This procedure is illustrated in Fig.~\ref{fig:rnn_lm}~(b).\footnote{
+    In the figure, you should notice the beginning-of-the-sentence symbol
+    $\left< \text{s} \right>$. This is necessary in order to use the very same
+    recurrent function $f$ to compute the conditional probability of the first
+    word in the input sentence.
+}
+This language model is called a {\em recurrent neural network language
+model} (RNN-LM, \cite{mikolov2010recurrent}). 
+
+But, wait, from looking at Figs.~\ref{fig:rnn_lm}~(a)--(b), there is a clear
+difference between the recurrent neural networks for part-of-speech tagging and
+language model. That is, there is no feedback connection from the output of the
+previous time step back into the recurrent neural network in the RNN-LM.  This
+is simply an illusion from the limitation in the graphical illustration, because
+the input $w^{t+1}$ in the next time step is in fact the output $w^{t+1}$ at the
+current time step. This becomes clearer by drawing the same figure in a slightly
+different way, as in Fig.~\ref{fig:rnn_lm2}.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/rnn_lm2.pdf}
+
+    \caption{
+        A recurrent neural network language model
+    }
+    \label{fig:rnn_lm2}
+\end{figure}
+
+\subsection{Generating Sentences from Recurrent Neural Network Language Model}
+
 \alert{TBD}
+
+\section{How do $n$-gram language model, neural language model and RNN-LM
+compare?}
+
+Now the question is which one of these language models we should use in practice.
+In order to answer this, we must first discuss the metric most commonly used for
+evaluating language models.
+
+The most commonly used metric is a {\em perplexity}. In the context of language
+modelling, the perplexity $\PPL$ of a model $\MM$ is computed by
+\begin{align}
+    \label{eq:ppl}
+    \PPL = {b}^{-\frac{1}{N} \sum_{n=1}^N \log_{b} p_{\MM}(w_n | w_{<n})},
+\end{align}
+where $N$ is the number of all the words in the validation/test corpus, and $b$
+is some constant that is often $2$ or $10$ in practice. 
+
+What is this perplexed metric? I totally agree with you on this one. Of course,
+there is a quite well principled way to explain what this perplexity is based on
+information theory. This is however not necessary for us to understand this
+metric called perplexity. 
+
+As the exponential function (with base $b$ in the case of perplexity in
+Eq.~\eqref{eq:ppl}) is a monotonically increasing function, we see that the
+ordering of different language models based on the perplexity will not change
+even if we only consider the exponent: 
+\begin{align*}
+    -\frac{1}{N} \sum_{n=1}^N \log_{b} p_{\MM}(w_n | w_{<n}).
+\end{align*}
+Furthermore, assuming that $b > 1$, we can simply replace $\log_b$ with $\log$
+(natural logarithm) without changing the order of different language models:
+\begin{align*}
+    -\frac{1}{N} \sum_{n=1}^N \log p_{\MM}(w_n | w_{<n}).
+\end{align*}
+Now, this looks awfully similar to the cost function, or negative
+log-likelihood, we minimize in order to train a neural network (see
+Chapter~\ref{chap:function_approx}.)
+
+Let's take a look at a single term inside the summation above:
+\begin{align*}
+    \log p_{\MM}(w_n | w_{<n}).
+\end{align*}
+This is simply measuring how high a probability the language model $\MM$ is
+assigning to a {\em correct next word} given all the previous words. Again,
+because $\log$ is a monotonically increasing function.
+
+In summary, the (inverse) perplexity measures how high a probability the
+language model $\MM$ assigns to correct next words in the test/validation corpus
+{\em on average}.  Therefore, {\em a better language model is the one with a lower
+perplexity}.  There is nothing so perplexing about the perplexity, once we start
+viewing it from this perspective.
+
+We are now ready to compare different language models, or to be more precise,
+three different classes of language models--count-based $n$-gram language model,
+neural $n$-gram language model and recurrent neural network language model. The
+biggest challenge in doing so is that this comparison will depend on many
+factors that are not easy to control. To list a few of them,
+\begin{itemize}
+    \itemsep 0em
+    \item Language
+    \item Genre/Topic of training, validation and test corpora
+    \item Size of a training corpus
+    \item Size of a language model
+\end{itemize}
+
+Because of this difficulty, this kind of comparison has often been done in the
+context of a specific downstream application. This choice of a downstream
+application often puts rough constraints on the size of available, or commonly
+used, corpus, target language and reasonably accepted size of language models.
+For instance, the authors of \cite{baltescu2014pragmatic} compared the
+conventional $n$-gram language model and neural language model, with various
+approximation techniques, with machine translation as a final task. In
+\cite{sundermeyer2015feedforward}, the authors compared all the three classes of
+language model in the context of automatic speech recognition.
+
+%\begin{wrapfigure}{l}{0.4\textwidth}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/sundermeyer1.png}
+
+    \caption{
+        The perplexity, word error rate (WER) and character error rate (CER) of
+        an automatic speech recognition system using different language models.
+        Note that all the results by neural or recurrent language models are by
+        interpolating these models with the count-based $n$-gram language model.
+        Reprinted from \cite{sundermeyer2015feedforward}.
+    }
+    \label{fig:sundermeyer1}
+\end{figure}
+
+First, let us look at one observation made in \cite{sundermeyer2015feedforward}.
+From Fig.~\ref{fig:sundermeyer1}, we can see that it is beneficial to use a
+recurrent neural network language model (RNN-LM) compared to a usual neural
+language model. Especially when long short-term memory units were used, the
+improvement over the neural language model was significant. Furthermore, we see
+that it is possible to improve these language models by simply increasing their
+size. 
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/sundermeyer2.png}
+
+    \caption{
+        The trend of perplexity as the size of language model changes.
+        Reprinted from \cite{sundermeyer2015feedforward}.
+    }
+    \label{fig:sundermeyer2}
+\end{figure}
+
+Similarly, in Fig.~\ref{fig:sundermeyer2} from the same paper
+\cite{sundermeyer2015feedforward}, it is observed that larger language models
+tend to get better/lower perplexity and that RNN-LM in general outperforms
+neural language models. 
+
+These two observations do seem to suggest that neural and recurrent language
+models are better candidates as language model. However, this is not to be taken
+as an evidence for choosing neural or recurrent language models. It has been
+numerously observed over years that the best performance, both in terms of
+perplexity and in terms of performance in the downstream applications such as
+machine translation and automatic speech recognition, is achieved by combining
+a count-based $n$-gram language model and a neural, or recurrent, language
+model. See, for instance, \cite{schwenk2007continuous}.
+
+This superiority of combined, or hybrid, language model suggests that the
+count-based, or conventional, $n$-gram language model, neural language model and
+recurrent neural network language model are capturing underlying structures of
+natural language sentences that are complement to each other. However, it is not
+crystal clear how these captured structures differ from each other.
+
+
+
+
+
+
+
 
 
 
@@ -4440,6 +4783,7 @@ where $\text{cos}(\cdot, \cdot)$ is a cosine similarity defined as
 
 
 
+\chapter{Neural Machine Translation}
 
 
 
