@@ -145,6 +145,7 @@
 \DeclareMathOperator*{\argmin}{\arg \min}
 \newcommand{\newln}{\\&\quad\quad{}}
 
+\newcommand{\BP}{\text{BP}}
 \newcommand{\PPL}{\text{PPL}}
 \newcommand{\PL}{\text{PL}}
 \newcommand{\MatSum}{\text{MatSum}}
@@ -173,15 +174,20 @@
 
 \begin{document}
 
-\title{DS-GA 3001: Natural Language Understanding with Distributed Representation}
+\title{Natural Language Understanding with Distributed Representation}
 \author{Kyunghyun Cho\\New York University}
 
 \maketitle
 \pagenumbering{arabic}
 
 {\it 
-    Note that this lecture note is and will be constantly updated throughout
-    the semester. Please, check for the latest version frequently.
+    This is a lecture note used for the course DS-GA 3001 $\left<\right.$Natural
+    Language Understanding with Distributed Representation$\left.\right>$ at the
+    Center for Data Science\footnote{
+        \url{http://cds.nyu.edu/}
+    }, New York University in Fall, 2015.  This lecture
+    note will be constantly updated throughout the semester. Please, check for
+    the latest version frequently.
 }
 
 
@@ -1683,7 +1689,8 @@ the inputs.
 This is a special case, called the reverse mode, of automatic
 differentiation.\footnote{
     If anyone's interested in digging more into the whole field of automatic
-    differentiation, try to Google it and you'll find tons of materials.
+    differentiation, try to Google it and you'll find tons of materials. One
+    such reference is \cite{baydin2015automatic}.
 } It is probably the most valuable tool in deep learning, and fortunately many
 widely used toolkits such as Theano~\cite{bergstra2010theano,bastien2012theano}
 have implemented this reverse mode of automatic differentiation with an
@@ -1798,6 +1805,7 @@ function nodes.
 
 
 \chapter{Recurrent Neural Networks and Gated Recurrent Units}
+\label{chap:rnn}
 
 After the last lecture I hope that it has become clear how to build a multilayer
 perceptron. Of course, there are so many details that I did not mention, but are
@@ -1999,6 +2007,7 @@ parameters) in Sec.~\ref{sec:autodiff} applies to recurrent neural networks
 directly, except for one potentially confusing point.
 
 \subsection{Multiple Child Nodes and Derivatives}
+\label{sec:rnn_backprop}
 
 It may be confusing how to handle those parameters that are shared across
 multiple time steps; $\mW$ and $\mU$ in Fig.~\ref{fig:rec_unrolled}. In fact, in
@@ -3120,6 +3129,7 @@ code this up? I will leave these questions for you to figure out.
 
 
 \chapter{Neural Language Models}
+\label{chap:nlm}
 
 \section{Language Modeling: First Step}
 
@@ -4103,7 +4113,7 @@ to project each high-dimensional word vector into a lower-dimensional space
 %\alert{TBD}
 
 
-\subsection{Continuous Bag-of-Words Language Model: Maximum Pseudo-Likelihood
+\subsection{Continuous Bag-of-Words Language Model: Maximum Pseudo--Likelihood
 Approach}
 
 This is about time someone asks a question why we are only considering the {\em
@@ -4221,30 +4231,30 @@ maximize log-likelihood to train this model.\footnote{
     There are different ways to approximate the full sentence probability under
     this model. See \cite{jernite2015fast} for one such approach.
 } The latter however sheds a bit of light, because we can train a model to
-maximize pseudo-likelihood \cite{besag1975statistical} instead.\footnote{
+maximize pseudo--likelihood \cite{besag1975statistical} instead.\footnote{
     See the note by Amir Globerson (later modified by David Sontag) available at
     \url{http://cs.nyu.edu/~dsontag/courses/inference14/slides/pseudolikelihood_notes.pdf}.
 }
 
-Pseudo-likelihood of the MRF-LM is defined as
+Pseudo--likelihood of the MRF-LM is defined as
 \begin{align}
     \label{eq:pl_cbow}
     \log \PL = \sum_{i=1}^T \log p(w^i | w^{i-n}, \ldots, w^{i-1}, w^{i+1}, \ldots,
     w^{i+n}).
 \end{align}
-Maximizing this pseudo-likelihood is equivalent to training a neural network in
+Maximizing this pseudo--likelihood is equivalent to training a neural network in
 Fig.~\ref{fig:cbow} which approximates each conditional distribution $p(w^i |
 w^{i-n}, \ldots, w^{i-1}, w^{i+1}, \ldots, w^{i+n})$ to give a higher
 probability to the ground-truth center word in the training corpus.
 
-Unfortunately, even after training the model by maximizing the pseudo-likelihood
+Unfortunately, even after training the model by maximizing the pseudo--likelihood
 in Eq.~\eqref{eq:pl_cbow}, we do not have a good way to compute the full
 sentence probability under this model. Under certain conditions maximizing
-pseudo-likelihood indeed converges to the maximum likelihood solution, but this
+pseudo--likelihood indeed converges to the maximum likelihood solution, but this
 does not mean that we can use the product of all the conditionals as a
 replacement of the full sentence probability. However, this does not mean that
 we cannot use this MRF-LM as a language model, since given a fixed model, the
-pseudo-probability (the product of all the conditionals) can score different
+pseudo--probability (the product of all the conditionals) can score different
 sentences. 
 
 This is in contrast to the neural language model we discussed earlier in
@@ -4622,16 +4632,6 @@ factors that are not easy to control. To list a few of them,
     \item Size of a language model
 \end{itemize}
 
-Because of this difficulty, this kind of comparison has often been done in the
-context of a specific downstream application. This choice of a downstream
-application often puts rough constraints on the size of available, or commonly
-used, corpus, target language and reasonably accepted size of language models.
-For instance, the authors of \cite{baltescu2014pragmatic} compared the
-conventional $n$-gram language model and neural language model, with various
-approximation techniques, with machine translation as a final task. In
-\cite{sundermeyer2015feedforward}, the authors compared all the three classes of
-language model in the context of automatic speech recognition.
-
 %\begin{wrapfigure}{l}{0.4\textwidth}
 \begin{figure}[ht]
     \centering
@@ -4647,13 +4647,15 @@ language model in the context of automatic speech recognition.
     \label{fig:sundermeyer1}
 \end{figure}
 
-First, let us look at one observation made in \cite{sundermeyer2015feedforward}.
-From Fig.~\ref{fig:sundermeyer1}, we can see that it is beneficial to use a
-recurrent neural network language model (RNN-LM) compared to a usual neural
-language model. Especially when long short-term memory units were used, the
-improvement over the neural language model was significant. Furthermore, we see
-that it is possible to improve these language models by simply increasing their
-size. 
+Because of this difficulty, this kind of comparison has often been done in the
+context of a specific downstream application. This choice of a downstream
+application often puts rough constraints on the size of available, or commonly
+used, corpus, target language and reasonably accepted size of language models.
+For instance, the authors of \cite{baltescu2014pragmatic} compared the
+conventional $n$-gram language model and neural language model, with various
+approximation techniques, with machine translation as a final task. In
+\cite{sundermeyer2015feedforward}, the authors compared all the three classes of
+language model in the context of automatic speech recognition.
 
 \begin{figure}[ht]
     \centering
@@ -4665,6 +4667,14 @@ size.
     }
     \label{fig:sundermeyer2}
 \end{figure}
+
+First, let us look at one observation made in \cite{sundermeyer2015feedforward}.
+From Fig.~\ref{fig:sundermeyer1}, we can see that it is beneficial to use a
+recurrent neural network language model (RNN-LM) compared to a usual neural
+language model. Especially when long short-term memory units were used, the
+improvement over the neural language model was significant. Furthermore, we see
+that it is possible to improve these language models by simply increasing their
+size. 
 
 Similarly, in Fig.~\ref{fig:sundermeyer2} from the same paper
 \cite{sundermeyer2015feedforward}, it is observed that larger language models
@@ -4686,106 +4696,501 @@ recurrent neural network language model are capturing underlying structures of
 natural language sentences that are complement to each other. However, it is not
 crystal clear how these captured structures differ from each other.
 
-
-
-
-
-
-
-
-
-
-
-%If $\log p(y_t=y_t^*|\ldots,\phi(x_{t'})+\epsilon, \ldots)$ is larger than the
-%current estimate of the conditional probability of the correct label, we move
-%into the direction of $\epsilon$, which will decrease the cost
-%function.\footnote{
-%    Note that the cost function I am referring to here only concerns getting the
-%    $t$-th output correct given the $t'$-th input symbol. It is quite likely
-%    that following $\epsilon$ that increases $\log p(y_t=y_t^*| \ldots)$ will
-%    not decrease the overall cost function. Why? Because there are many other
-%    dependencies in the data.
-%}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%\subsubsection{Backpropagation is Hard with Simple RNN}
-%
-%A very similar argument for using a bounded nonlinear function for recurrent
-%neural networks works at the same time against the simple recurrent neural
-%network as well. Unlike the previous section, here we look at the backward pass.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 \chapter{Neural Machine Translation}
 
+Finally, we have come to the point in this course where we discuss an {\em
+actual} natural language task. In this chapter, we will discuss how translation
+from one language to another can be done with statistical methods, more
+specifically neural networks.
 
+\section{Statistical Approach to Machine Translation}
+
+Let's first think of what it means to translate one sentence $X$ in a source
+language to an equivalent sentence $Y$ in a target language which is different
+from the source language. A process of translation is a function that takes as
+input the source sentence $X$ and returns a correct translation $Y$, and it is
+clear that there may be more than one correct translations. The latter fact
+implies that this function of translation should return not a single correct
+translation, but a probability distribution that assigns high probabilities to
+more than one likely translations.
+
+Now, let us write it in a more formal way. First, the input is a sequence of
+words
+\[
+    X = (x_1, x_2, \ldots, x_{T_x}),
+\]
+where $T_x$ is the length of the source sentence. A target sentence is 
+\[
+Y = (y_1, y_2, \ldots, y_{T_y}).
+\]
+Similarly, $T_y$ is the length of the target sentence.
+
+The translation function $f$ then reads the input sequence $X$ and computes the
+probability over target sentences. In other words,
+\begin{align}
+    \label{eq:translation_f}
+    f: V_x^+ \to C_{|V_y|-1}^+
+\end{align}
+where $V_x$ is a source vocabulary, and $V_x^+$ is a set of all possible source
+sentences of any length $T_x>0$. $V_y$ is a target vocabulary, and $C_k$ is a
+standard $k$-simplex. 
+
+What is a standard $k$-simplex? It is a set defined by
+\begin{align*}
+    C_k = \left\{ 
+        (t_0, \ldots, t_k) \in \RR^{k+1} 
+        \left|
+        \sum_{i=1}^k t_k = 1 
+        \text{ and }
+        t_i \geq 0 \text{ for all } i
+        \right.
+    \right\}.
+\end{align*}
+In short, this set contains all possible settings for categorical distributions
+of $k+1$ possible outcomes. This means that the translation function $f$ returns
+a probability distribution $P(Y|X)$ over all possible translations of length
+$T_y>1$. 
+
+Given a source sentence $X$, this translation function $f$ returns the
+conditional probability of a translation $Y$: $P(Y | X)$. Let us rewrite this
+conditional probability according to what we have discussed in
+Chapter~\ref{chap:nlm}:
+\begin{align}
+    \label{eq:condlm}
+    P(Y | X) = \prod_{t=1}^{T_y} 
+    \underbrace{P(y_t | y_{1}, \ldots, y_{t-1},
+        \underbrace{X}_{\text{conditional}}
+)}_{\text{language modelling}}
+\end{align}
+Looking at it in this way, it is clear that this is nothing but {\em conditional
+language modelling}.  This means that we can use any of the techniques we have
+used earlier in Chapter~\ref{chap:nlm} for statistical machine translation.
+
+Training can be trivially done by maximizing the log-likelihood or equivalently
+minimizing the {\em negative} log-likelihood (see
+Sec.~\ref{sec:distribution_approx}):
+\begin{align*}
+    \tilde{C}(\TT) = -\frac{1}{N} \sum_{n=1}^N \sum_{t=1}^{T_y} \log p(y^n_t |
+    y^n_{<t}, X^n),
+\end{align*}
+given a training set 
+\begin{align}
+    \label{eq:data}
+    D = \left\{ (X^1, Y^1), (X^2, Y^2), \ldots, (X^N, Y^N)\right\}
+\end{align}
+consisting of $N$ training {\em pairs}.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/smt1.pdf}
+    \caption{Graphical illustration of statistical machine translation}
+    \label{fig:smt}
+\end{figure}
+
+All these look extremely straightforward and do not deviate too much from what
+we have learned so far in this course. A big picture on this process translation
+is shown in Fig.~\ref{fig:smt}.  More specifically, building a statistical
+machine translation model is simple, because we have learned how to 
+\begin{enumerate}
+    \itemsep 0em
+    \item Assign a probability to a sentence in
+        Sec.~\ref{sec:lm}.
+    \item Handle variable-length sequences with recurrent
+        neural networks in Sec.~\ref{sec:rnn}.
+    \item Compute the gradient of an empirical cost function $\tilde{C}$ with
+        respect to the parameters $\TT$ of a recurrent neural network in
+        Sec.~\ref{sec:rnn_backprop} and Sec.~\ref{sec:autodiff}.
+    \item Use stochastic gradient descent to minimize the cost function in
+        Sec.~\ref{sec:sgd}.
+\end{enumerate}
+
+Of course, simply knowing all these does not get you a working neural network
+that translates from one language to another. We will discuss in detail how we
+can build such a neural network in the next section. Before going to the next
+section, we must first discuss two issues; (1) where do we get training data?
+(2) how do we evaluate machine translation systems?
+
+\subsection{Parallel Corpora: Training Data for Machine Translation}
+
+First, let us consider again what the problem we're trying to solve here. It is
+machine translation, and from the description in the previous section and from
+Eqs.~\eqref{eq:translation_f}--\eqref{eq:condlm}, it is a {\em
+sentence-to-sentence} translation task. We approach this problem by building a
+model that takes as input a source sentence $S$ and computes the probability
+$P(Y|X)$ of a target sentence $Y$, equivalently a translation. In order for this
+model to translate, we must train it with a training set of pairs of a source
+sentence and its correct translation.
+
+The very first problem we run into is where we can find this training set which
+is often called a {\em parallel corpus}. It is not easy to think of documents
+which have been translated into multiple languages. Let's take for instance all
+the books that are being translated each year. According to \cite{post2011},
+approximately 3\% of titles published each year in English are
+translations from another language.\footnote{
+    ``According to the information Bowker released in October of 2005, in 2004 there
+    were 375,000 new books published in English.'' .. ``Of that total, approx.
+    14,440 were new translations, which is slightly more than 3\% of all books
+    published.'' \cite{post2011}.
+} 
+A few international news agencies publish some of their news articles in
+multiple languages. For instance, AFP publishes 1,500 stories in French, 700
+stories in English, 400 stories in Spanish, 250 stories in Arabic, 200 stories
+in German and 150 stories in Portuguese each day, and there are some overlapping
+stories across these six languages.\footnote{
+    \url{http://www.afp.com/en/products/services/text}
+} 
+Online commerce sites, such as eBay, often list their products in international
+sites with their descriptions in multiple languages.\footnote{
+    \url{http://sellercentre.ebay.co.uk/international-selling-tools}
+}
+
+Unfortunately these sources of multiple languages of the same content are not
+suitable for our purpose. Why is this so? Most importantly, they are often
+copy-righted and sold for personal use only. We cannot buy more than 14,400
+books in order to train a translation model. We will likely go broke before
+completing the purchase, and even if so, it is unclear whether it is acceptable
+under copyright to use these text to build a translation model. Because we are
+mixing multiple sources of which each is protected under copyright, is the
+translation model trained from a mix of all these materials considered a
+derivative work?\footnote{
+    \url{http://copyright.gov/circs/circ14.pdf}
+}
+
+This issue is nothing new, and has been there since the very first statistical
+machine translation system was proposed in \cite{brown1990statistical}.
+Fortunately, it turned out that there are a number of legitimate sources where
+we can get documents translated in more than one languages, often very
+faithfully to their content. These sources are parliamentary proceedings of
+bilingual, or multilingual countries.
+
+Brown et al.~\cite{brown1990statistical} used the proceedings from the Canadian
+parliament, which are by law kept in both French and English. All of these
+proceedings are digitally available and called {\em Hansards}. You can check it
+yourself online at \url{http://www.parl.gc.ca/}, and here's an excerpt from the
+Prayers of the 2nd Session, 41st Parliament, Issue 152:\footnote{
+    This is one political lesson here: {\em Canada is still headed by the Queen of
+    the United Kingdom}.
+}
+\begin{itemize}
+    \itemsep 0em
+    \item {\bf French}: ``ELIZABETH DEUX, par la Grâce de Dieu, REINE du
+        Royaume-Uni, du Canada et de ses autres royaumes et territoires, Chef du
+        Commonwealth, D\'efenseur de la Foi.''
+    \item {\bf English}: ``ELIZABETH THE SECOND, by the Grace of God of the
+        United Kingdom, Canada and Her other Realms and Territories QUEEN, Head
+        of the Commonwealth, Defender of the Faith.''
+\end{itemize}
+Every single word spoken in the Canadian parliament is translated either into
+French or into English. A more recent version of Hansards preprocessed for
+research can be found at
+\url{http://www.isi.edu/natural-language/download/hansard/}.
+
+Similarly, the European parliament used to provided the parliamentary
+proceedings in all 23 official languages.\footnote{
+    Unfortunately, the European parliament decided to stop translating its
+    proceedings into all 23 official languages on 21 Nov 2011 as an effort
+    toward budget cut. See
+    \url{http://www.euractiv.com/culture/parliament-cuts-translation-budg-news-516201}.
+} This is a unique data in the sense that each and every sentence is translated
+into either 11 or 26 official languages. For instance, here is one example
+\cite{koehn2005europarl}:
+\begin{itemize}
+    \itemsep 0em
+    \item {\bf Danish}: det er næsten en personlig rekord for mig dette
+        efter{\aa}r.
+    \item {\bf German}: das ist f\"ur mich fast pers\"onlicher rekord in diesem
+        herbst .
+    \item {\bf Greek}: (omitted)
+    \item {\bf English}: that is almost a personal record for me this autumn !
+    \item {\bf Spanish}: es la mejor marca que he alcanzado este oto\~no .
+    \item {\bf Finnish}: se on melkein minun enn\"atykseni t\"an\"a syksyn\"a !
+    \item {\bf French}: c ' est pratiquement un record personnel pour moi , cet
+        automne !
+    \item {\bf Italian}: e ' quasi il mio record personale dell ' autunno .
+    \item {\bf Dutch}: dit is haast een persoonlijk record deze herfst .
+    \item {\bf Portuguese}: \'e quase o meu recorde pessoal deste semestre !
+    \item {\bf Swedish}: det \"ar n\"astan personligt rekord f\"or mig denna h\"ost !
+\end{itemize}
+
+The European proceedings has been an invaluable resource for machine translation
+research. At least, the existing multilingual proceedings (up to 2011) can be
+still used, and it is known in the field as the ``Europarl'' corpus
+\cite{koehn2005europarl} and can be downloaded from
+\url{http://www.statmt.org/europarl/}. 
+
+These proceedings-based parallel corpora have two distinct advantages. First,
+in many cases, the sentences in those corpora are well-formed, and their
+translations are done by professionals, meaning the quality of the corpora is
+guaranteed. Second, surprisingly, the topics discussed in those proceedings are
+quite diverse. Clearly the members of the parliament do not often chitchat too
+often, but they do discuss a diverse set of topics. Here's one such example from
+the Europarl corpus:
+\begin{itemize}
+    \itemsep 0em
+    \item {\bf English}: 
+        Although there are now two Finnish channels and one Portuguese one, there is
+        still no Dutch channel, which is what I had requested because Dutch people here
+        like to be able to follow the news too when we are sent to this place of exile
+        every month.
+    \item {\bf French}: 
+        Il y a bien deux chaînes finnoises et une chaîne portugaise, mais il n'y a
+        toujours aucune chaîne néerlandaise. Pourtant je vous avais demand\'e une chaîne
+        n\'eerlandaise, car les Néerlandais aussi désirent pouvoir suivre les actualités
+        chaque mois lorsqu'ils sont envoyés en cette terre d'exil.
+\end{itemize}
+
+One apparent limitation is that these proceedings cover only a handful of
+languages in the world, mostly west European languages. This is not desirable.
+Why? According to Ethnologue (2014)\footnote{
+    \url{http://www.ethnologue.com/world}
+}, the top-five most spoken languages in the world are
+\begin{enumerate}
+    \itemsep 0em
+    \item Chinese: approx. 1.2 billion
+    \item Spanish: approx. 414 million
+    \item English: approx. 335 million
+    \item Hindi: approx. 260 million
+    \item Arabic: approx. 237 million
+\end{enumerate}
+There are only two European languages in this list.
+
+So, then, where can we get all data for all these non-European languages? There
+are a number of resources you can use, and let me list a few of them here:
+
+You can find the translated subtitle of the TED talks at the Web Inventory of
+Transcribed and Translated Talks (WIT$^3$, \url{https://wit3.fbk.eu/})
+\cite{cettoloEtAl:EAMT2012}. It is a quite small corpus, but includes 104
+languages. For Russian--English data, Yandex released a parallel corpus of one
+million sentence pairs. You can get it at
+\url{https://translate.yandex.ru/corpus?lang=en}. You can continue with other
+languages by googling very hard, but eventually you run into a hard wall.
+
+This hard wall is not only the lack of any resource, but also lack of enough
+resource. For instance, I quickly googled for Korean--English parallel corpora
+and found the following resources:
+\begin{itemize}
+    \item SWRC English-Korean multilingual corpus: 60,000 sentence pairs
+        \url{http://semanticweb.kaist.ac.kr/home/index.php/Corpus10}
+    \item Jungyeul's English-Korean parallel corpus: 94,123 sentence pairs
+        \url{https://github.com/jungyeul/korean-parallel-corpora}
+\end{itemize}
+This is just not large enough. 
+
+One way to avoid this or mitigate this problem is to automatically mine parallel
+corpora from the Internet. There have been quite some work in this direction as
+a way to increase the size of parallel corpora
+\cite{resnik2003web,zhang2006automatic}. The idea is to build an algorithm that
+crawls the Internet and find a pair of corresponding pages in two different
+languages. One of the largest preprocessed corpus of multiple languages from the
+Internet is the Common Crawl Parallel Corpus created by Smith et
+al.~\cite{smith2013dirt} available at
+\url{http://www.statmt.org/wmt13/training-parallel-commoncrawl.tgz}.
+
+
+
+
+\subsection{Automatic Evaluation Metric}
+
+Let's say we have trained a machine translation model on a training corpus. A
+big question follows: {\em how do we evaluate this model}?
+
+In the case of classification, evaluation is quite straightforward. All we need
+to do is to classify held-out test examples with a trained classifier and see
+how many examples were correctly classified. This is however not true in the
+case of translation. 
+
+There are a number of issues, but let us discuss two most important problems
+here. First, there may be many correct translations given a single source
+sentence. For instance, the following three sentences are the translations made
+by a human translator given a single Chinese sentence \cite{papineni2002bleu}:
+\begin{itemize}
+    \itemsep 0em
+    \item It is a guide to action that ensures that the military will forever
+        heed Party commands.
+    \item It is the guiding principle which guarantees the military forces
+        always being under the command of the Party.
+    \item It is the practical guide for the army always to heed the directions
+        of the party.
+\end{itemize}
+They all clearly differ from each other, although they are the translations of a
+single source sentence. 
+
+Second, the quality of translation cannot be measured as either success or
+failure. It is rather a smooth measure between success and failure. Let us
+consider an English translation of a French sentence ``J'aime un llama, qui est
+un animal mignon qui vit en Am\'erique du Sud''.\footnote{
+    I would like to thank Laurent Dinh for the French translation.
+}
+
+One possible English translation of this French sentence is ``I like a llama
+which is a cute animal living in South America''. Let's give this translation a
+score $100$ (success). According to Google translate, the French sentence above
+is ``I like a llama, a cute animal that lives in South America''. I see that
+Google translate has omitted ``qui est'' from the original sentence, but the
+whole meaning has well been captured. Let us give this translation a slightly
+lower score of $90$. 
+
+Then, how about ``I like a llama from South America''?  This is certainly not a
+correct translation, but except for the part about a llama being cute, this
+sentence does communicate most of what the original French sentence tried to
+communicate. Maybe, we can give this translation a score of $50$. 
+
+How about ``I do not like a llama which is an animal from South America''? This
+translation correctly describes the characteristics of llama exactly as
+described in the source sentence. However this translation incorrectly states
+that I do not like a llama, when I like a llama according to the original French
+sentence. What kind of score would you give this translation?
+
+Even worse, we want an automated evaluation algorithm. We cannot look at
+thousands of validation or test sentence pairs to tell how well a machine
+translation model does. Even if we somehow did it for a single model, in order
+to compare this translation model against others, we must do it for every single
+machine translation model under comparison. We must have an automatic evaluation
+metric in order to efficiently test and compare different machine translation
+models.
+
+\paragraph{BLEU} 
+One of the most widely used automatic evaluation metric for assessing the
+quality of translations is BLEU proposed in \cite{papineni2002bleu}. BLEU
+computes the geometric mean of the modified $n$-gram precision scores multiplied
+by brevity penalty. Let me describe this in detail here.
+
+First, we define the modified $n$-gram precision $p_n$ of a translation $Y$ as
+\begin{align*}
+    p_n = \frac{
+        \sum_{S \in C} \sum_{\text{ngram} \in S} \hat{c}(\text{ngram})
+    }
+    {
+        \sum_{S \in C} \sum_{\text{ngram} \in S} c(\text{ngram})
+    },
+\end{align*}
+where $C$ is a corpus of all the sentences/translations, and $S$ is a set of all
+unique $n$-grams in one sentence in $C$. $c(\text{ngram})$ is the count of the
+$n$-gram, and $\hat{c}(\text{ngram})$ is
+\begin{align*}
+    \hat{c}(\text{ngram}) = \min(c(\text{ngram}), c_{\text{ref}}(\text{ngram})).
+\end{align*}
+$c_{\text{ref}}(\text{ngram})$ is the count of the $n$-gram in reference
+sentences.
+
+What does this modified $n$-gram precision measure? It measures the ratio
+between the number of $n$-grams in the translation and the number of those
+$n$-grams actually occurred in a reference (ground-truth) translation. If there
+is no $n$-gram from the translation in the reference, this modified precision
+will be zero because $c_{\text{ref}}(\cdot)$ will be zero all the time. 
+
+It is common to use the geometric average of modified 1-, 2-, 3- and 4-gram
+precisions, which is computed by
+\begin{align*}
+    P_1^4 = \exp\left( \frac{1}{4} \sum_{n=1}^4 \log p_n \right).
+\end{align*}
+
+If we use this geometric average $P$ as it is, there is a big loophole. One can
+get a high average modified precision by making as short a translation as
+possible. For instance, a reference translation is
+\begin{itemize}
+    \item I like a llama, a cute animal that lives in South America .
+\end{itemize}
+and a translation we are trying to evaluate is
+\begin{itemize}
+    \item cute animal that lives
+\end{itemize}
+This is clearly a very bad translation, but the modified 1-, 2-, 3- and 4-gram
+precisions will be high. The modified precisions are
+\begin{align*}
+    p_1 =& \frac{1+1+1+1}{1+1+1+1} = \frac{4}{4} = 1 \\
+    p_2 =& \frac{1+1+1}{1+1+1} = \frac{3}{3} = 1 \\
+    p_3 =& \frac{1+1}{1+1} = \frac{2}{2} = 1 \\
+    p_4 =& \frac{1}{1} = \frac{1}{1} = 1.
+\end{align*}
+Their geometric average is then
+\begin{align*}
+    P_1^4 = \exp\left( \frac{1}{4} \left( 0 + 0 + 0 + 0 \right)\right) = 1
+\end{align*}
+which is the maximum modified precision you can get!
+
+In order to avoid this behaviour, BLEU penalizes the geometric average of the
+modified $n$-gram precisions by the ratio of the lengths between the reference
+$r$ and translation $l$. This is done by first computing a brevity penalty:
+\begin{align*}
+    \BP = \left\{ 
+        \begin{array}{l l}
+            1 & \text{, if }r \geq l \\
+            \exp\left( 1 - \frac{r}{l} \right) & \text{, if }r < l
+        \end{array}
+        \right.
+\end{align*}
+If the translation is longer than the reference, it uses the geometric average
+of the modified $n$-gram precisions as it is. Otherwise, it will penalize it by
+multiplying the average precision with a scalar less than $1$. 
+In the case of the example above, the brevity penalty is $0.064$, and the final
+BLEU score is $0.064$. 
+
+\begin{figure}[ht]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.99\columnwidth]{figures/bleu.png}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.99\columnwidth]{figures/bleu_fail.png}
+    \end{minipage}
+
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        (a)
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        (b)
+    \end{minipage}
+    \caption{(a) BLEU vs. bilingual and monolingual judgements of three machine
+    translation systems (S1, S2 and S3) and two humans (H1 and H2). Reprinted
+from \cite{papineni2002bleu}. (b) BLEU vs. human judgement (adequacy and fluency
+separately) of three machine translation systems (two statistical and one
+rule-based systems). Reprinted from \cite{callison2006re}.}
+    \label{fig:bleu}
+\end{figure}
+
+The BLEU was shown to correlate well with human judgements in the original
+article \cite{papineni2002bleu}. Fig.~\ref{fig:bleu}~(a) shows how BLEU correlates
+with the human judgements in comparing different translation systems.
+
+This is however not to be taken as a message saying that the BLEU is the perfect
+automatic evaluation metric. It has been shown that the BLEU is only adequate in
+comparing two similar machine translation systems, but not too much so in
+comparing two very different systems. For instance, Callison-Burch et
+al.~\cite{callison2006re} observed that the BLEU underestimates the quality of
+the machine translation system that is {\em not} a phrase-based statistical
+system. See Fig.~\ref{fig:bleu}~(b) for an example.
+
+BLEU is definitely not a perfect metric, and many researchers strive to build a
+better evaluation metric for machine translation systems. Some of the
+alternatives available at the moment are
+METEOR~\cite{denkowski:lavie:meteor-wmt:2014} and TER~\cite{snover2006study}.
+
+\section{Neural Machine Translation}
+
+From the previous section and  from Eq.~\ref{eq:condlm}, it is clear that we
+need to model each conditional distribution inside the product as a function.
+This function will take as input all the previous words in the target sentence
+$(y_1, \ldots, y_{t-1})$ and the whole source sentence $(x_1, \ldots, x_{T_x})$.
+Given these inputs the function will compute the probabilities of all the words
+in the target vocabulary $V_y$.
+
+
+\alert{TBD}
+
+\section{Attention-based Neural Machine Translation}
+
+\alert{TBD}
+
+\section{History of Statistical Machine Translation}
+
+\alert{TBD}
 
 
 
