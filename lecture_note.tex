@@ -5185,7 +5185,9 @@ need to model each conditional distribution inside the product as a function.
 This function will take as input all the previous words in the target sentence
 $Y=(y_1, \ldots, y_{t-1})$ and the whole source sentence $X=(x_1, \ldots, x_{T_x})$.
 Given these inputs the function will compute the probabilities of all the words
-in the target vocabulary $V_y$.
+in the target vocabulary $V_y$. In this section, I will describe an approach
+that was proposed multiple times independently over 17 years in
+\cite{forcada1997recursive,cho2014learning,sutskever2014sequence}.
 
 Let us start by tackling how to handle the source sentence $X=(x_1, \ldots,
 x_{T_x})$. Since this is a variable-length sequence, we can readily use a
