@@ -156,6 +156,9 @@
 \newcommand{\maxout}{\text{maxout}}
 \newcommand{\train}{\text{train}}
 \newcommand{\val}{\text{val}}
+\newcommand{\init}{\text{init}}
+\newcommand{\enc}{\text{enc}}
+\newcommand{\dec}{\text{dec}}
 \newcommand{\test}{\text{test}}
 \newcommand{\Ax}{\mathcal{A}_x}
 \newcommand{\Ay}{\mathcal{A}_y}
@@ -2519,7 +2522,8 @@ We call this recurrent activation function with the reset and update gates a
 {\em gated recurrent unit} (GRU), and a recurrent neural network having this GRU
 as a gated recurrent network.
 
-\paragraph{Long Short-Term Memory}
+\subsection{Long Short-Term Memory}
+\label{sec:lstm}
 
 The gated recurrent unit (GRU) is highly motivated by a much earlier work on
 long short-term memory (LSTM) units \cite{hochreiter1997long}.\footnote{
@@ -2574,9 +2578,9 @@ to the memory. They are computed by
 
 The candidate memory state is computed similarly to how it was done with the GRU
 in Eq.~\eqref{eq:gru_cand}:
-\begin{align*}
+\begin{align}
     \tilde{\vc}_t = g(\mW_c \phi(x_t) + \mU_c \vh_{t-1}),
-\end{align*}
+\end{align}
 where $g$ is often an element-wise $\tanh$.
 
 All the additional parameters specific to the
@@ -4428,6 +4432,7 @@ maximize a certain objective that better suits your final task.
 But, then, what other training objectives are there? We will get to that later.
 
 \section{Recurrent Language Model}
+\label{sec:rlm}
 
 Neural language model indeed avoids the lack of generalization in the
 conventional $n$-gram language modeling. It still assumes the $n$-th order
@@ -4564,9 +4569,9 @@ different way, as in Fig.~\ref{fig:rnn_lm2}.
     \label{fig:rnn_lm2}
 \end{figure}
 
-\subsection{Generating Sentences from Recurrent Neural Network Language Model}
-
-\alert{TBD}
+%\subsection{Generating Sentences from Recurrent Neural Network Language Model}
+%
+%\alert{TBD}
 
 \section{How do $n$-gram language model, neural language model and RNN-LM
 compare?}
@@ -4769,10 +4774,11 @@ used earlier in Chapter~\ref{chap:nlm} for statistical machine translation.
 Training can be trivially done by maximizing the log-likelihood or equivalently
 minimizing the {\em negative} log-likelihood (see
 Sec.~\ref{sec:distribution_approx}):
-\begin{align*}
+\begin{align}
+    \label{eq:nmt_cost}
     \tilde{C}(\TT) = -\frac{1}{N} \sum_{n=1}^N \sum_{t=1}^{T_y} \log p(y^n_t |
     y^n_{<t}, X^n),
-\end{align*}
+\end{align}
 given a training set 
 \begin{align}
     \label{eq:data}
@@ -5172,15 +5178,157 @@ better evaluation metric for machine translation systems. Some of the
 alternatives available at the moment are
 METEOR~\cite{denkowski:lavie:meteor-wmt:2014} and TER~\cite{snover2006study}.
 
-\section{Neural Machine Translation}
+\section{Neural Machine Translation: \\ Simple Encoder-Decoder Model}
 
 From the previous section and  from Eq.~\ref{eq:condlm}, it is clear that we
 need to model each conditional distribution inside the product as a function.
 This function will take as input all the previous words in the target sentence
-$(y_1, \ldots, y_{t-1})$ and the whole source sentence $(x_1, \ldots, x_{T_x})$.
+$Y=(y_1, \ldots, y_{t-1})$ and the whole source sentence $X=(x_1, \ldots, x_{T_x})$.
 Given these inputs the function will compute the probabilities of all the words
 in the target vocabulary $V_y$.
 
+Let us start by tackling how to handle the source sentence $X=(x_1, \ldots,
+x_{T_x})$. Since this is a variable-length sequence, we can readily use a
+recurrent neural network from Chapter~\ref{chap:rnn}. However, unlike the
+previous examples, there is no explicit target/output in this case. All we need
+is a (vector) summary of the source sentence.
+
+We call this recurrent neural network an {\em encoder}, as it encodes the source
+sentence into a (continuous vector) code. It is implemented as
+\begin{align}
+    \label{eq:nmt_encoder}
+    \vh_t = \phi_{\enc}\left( \vh_{t-1}, \mE_x^\top \vx_t \right).
+\end{align}
+As usual, $\phi_{\enc}$ can be any recurrent activation function, but it is
+highly recommended to use either gated recurrent units (see Sec.~\ref{sec:gru})
+or long short-term memory units (see Sec.~\ref{sec:lstm}.) $\mE_x \in \RR^{|V_x|
+\times d}$ is an input weight matrix containing word vectors as its rows (see
+Eq.~\eqref{eq:word_emb} in Sec.~\ref{sec:nlm},) and $\vx_t$ is an one-hot vector
+representation of the word $x_t$ (see Eq.~\eqref{eq:one_hot_vector} in
+Sec.~\ref{sec:nlm}.) $\vh_0$ is initialized as an all-zero vector.
+
+\begin{figure}[t]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.98\columnwidth]{figures/nmt_enc.pdf}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.98\columnwidth]{figures/nmt_dec.pdf}
+    \end{minipage}
+
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        (a)
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        (b)
+    \end{minipage}
+    \caption{(a) The encoder and (b) the decoder of a simple neural machine
+    translation model}
+    \label{fig:nmt}
+\end{figure}
+
+After reading the whole sentence up to $\vx_{T_x}$, the last memory state
+$\vh_{T_x}$ of the encoder summarizes the whole source sentence into a single
+vector, as shown in Fig.~\ref{fig:nmt_enc}~(a). Thanks to this encoder, we can now
+work with a single vector instead of a whole sequence of source words. Let us
+denote this vector as $\vc$ and call it a {\em context vector}.
+
+We now need to design a {\em decoder}, again, using a recurrent neural network.
+As I mentioned earlier, the decoder is really nothing but a language model,
+except that it is conditioned on the source sentence $X$. What this means is
+that we can build a recurrent neural network language model from
+Sec.~\ref{sec:rlm} but feeding also the context vector at each time step. In
+other words,
+\begin{align}
+    \label{eq:nmt_decoder}
+    \vz_t = \phi_{\dec}\left( \vz_{t-1}, \left[ \mE_y^\top \vy_{t-1}; \vc
+    \right]\right)
+\end{align}
+Do you see the similarity and dissimilarity to Eq.~\eqref{eq:rnnlm_iteration}
+from Sec.~\ref{sec:rlm}? It's essentially same, except that the input at time $t$
+is a concatenated vector of the word vector of the previous word $y_{t-1}$ and
+the context vector $\vc$.
+
+Once the decoder's memory state is updated, we can compute the probabilities of
+all possible target words by
+\begin{align}
+    \label{eq:nmt_decoder_out}
+    p(y_t = w'|y_{<t}, X) \propto \exp\left( \ve_{w'}^\top \vz_t \right),
+\end{align}
+where $\ve_{w'}$ is the target word vector associated the word $w'$. This is
+equivalent to affine-transforming $\vz_t$ followed by a softmax function from
+Eq.~\eqref{eq:softmax} from Sec.~\ref{sec:distribution_approx}.
+
+Now, should we again initialize $\vz_0$ to be an all-zero vector? Maybe, or
+maybe not. One way to view what this decoder does is that the decoder models a
+{\em trajectory} in a continuous vector space, and each point in the trajectory
+is $\vz_t$. Then, $\vz_0$ acts as a starting point of this trajectory, and it is
+natural to initialize this starting point to be a point relevant to the source
+sentence. Because we have access to the source sentence's content via $\vc$, we
+can again use it to initialize $\vz_0$ as
+\begin{align}
+    \label{eq:nmt_init}
+    \vz_0 = \phi_{\init}\left( \vc \right).
+\end{align}
+See Fig.~\ref{fig:nmt}~(b) for the graphical illustration of the decoder.
+
+Although I have used $\vc$ as if it is a separate variable, this is not true.
+$\vc$ is simply a shorthand notation of the last memory state of the encoder
+which is a function of the whole source sentence. What does this mean? It means
+that we can compute the gradient of the empirical cost function in
+Eq.~\eqref{eq:nmt_cost} with respect to all the parameters of both the encoder
+and decoder and maximize the cost function using stochastic gradient descent,
+just like any other neural network we have learned so far in this course.
+
+\paragraph{Sampling}
+
+We are ready to compute the conditional distribution $P(Y|X)$ over all possible
+translations given a source sentence. When we have a distribution, the first
+thing we can try is to sample from this distribution. Often, it is not
+straightforward to generate samples from a distribution, but fortunately, in
+this case, we can readily generate exact samples from the distribution $P(Y|X)$. 
+
+We simply iterate over the following steps until a token indicating the end of a
+sentence ($\left< \text{eos} \right>$):
+\begin{enumerate}
+    \itemsep 0em
+    \item Compute $\vc$ (Eq.~\eqref{eq:nmt_encoder})
+    \item Initialize $\vz_0$ with $\vc$ (Eq.~\eqref{eq:nmt_init})
+    \item Compute $\vz_t$ given $\vz_{t-1}$, $\vy_{t-1}$ and $\vc$
+        (Eq.~\eqref{eq:nmt_decoder})
+    \item Compute $p(y_t|y_{<t}, X)$ (Eq.~\eqref{eq:nmt_decoder_out})
+    \item Sample $\tilde{y}_t$ from the compute distribution
+    \item Repeat (3)--(5) until $\tilde{y}_t = \left< \text{eos} \right>$
+\end{enumerate}
+
+After taking these steps, we get a sample $\tilde{Y}=\left( \tilde{y}_1, \ldots,
+\tilde{y}_{|\tilde{Y}|}\right)$ given a source sentence $X$. Of course, there is
+no guarantee that this will be a good translation of $X$. In order to find a
+good translation, meaning a translation with a high probability
+$P(\tilde{Y}|X)$, we need to repeatedly sample multiple translations from
+$P(Y|X)$ and choose one with the high probability.
+
+This is not too desirable, as it is not clear how many translations we need to
+sample from $P(Y|X)$ and also it will likely be computationally expensive. We
+must wonder whether we can solve the following optimization problem directly:
+\begin{align*}
+    \tilde{Y} = \argmax_{Y} \log P(Y|X).
+\end{align*}
+Unfortunately, the exact solution to this requires evaluating $P(Y|X)$ for every
+possible $Y$. Even if we limit our search space of $Y$ to consist of only
+sentences of length up to a finite number, it will likely become too large (the
+cardinality of the set grows exponentially with respect to the number of words
+in a translation.) Thus, it only makes sense to solving the optimization problem
+above approximately.
+
+
+\subsection{Approximate Decoding: Beamsearch}
 
 \alert{TBD}
 
