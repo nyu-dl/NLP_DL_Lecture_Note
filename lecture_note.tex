@@ -3680,8 +3680,8 @@ More generally, we may rewrite Eq.~\eqref{eq:n_gram_smooth} as
         \begin{array}{l}
             \alpha(w_k | w_{k-n}, \ldots, w_{k-1}), \text{ if } c(w_{k-n},
             \ldots, w_{k-1}, w_k) > 0 \\
-            \gamma(w_{k-n}, \ldots, w_{k-1}) p^S(w_{k-1}|w_{k-n}, \ldots,
-            w_{k-2}), \text{ otherwise}
+            \gamma(w_{k-n+1}, \ldots, w_{k}) p^S(w_{k}|w_{k-n+1}, \ldots,
+            w_{k-1}), \text{ otherwise}
         \end{array}
         \right.
 \end{align}
@@ -5121,8 +5121,8 @@ $r$ and translation $l$. This is done by first computing a brevity penalty:
 \begin{align*}
     \BP = \left\{ 
         \begin{array}{l l}
-            1 & \text{, if }r \geq l \\
-            \exp\left( 1 - \frac{r}{l} \right) & \text{, if }r < l
+            1 & \text{, if }l \geq r \\
+            \exp\left( 1 - \frac{r}{l} \right) & \text{, if }l < r
         \end{array}
         \right.
 \end{align*}
