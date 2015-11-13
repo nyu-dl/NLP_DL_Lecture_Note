@@ -5332,6 +5332,84 @@ above approximately.
 
 \subsection{Approximate Decoding: Beamsearch}
 
+Although it is quite clear that finding a translation $\tilde{Y}$ that maximizes
+the log-probability $\log P(\tilde{Y}|X)$ is extremely expensive, we will
+regardlessly try it here. 
+
+One very natural way to enumerate all possible target sentences and
+simultaneously computing the log-probability of each and every one of them is to
+start from all possible first word, compute the probabilities of them, and from
+each potential first word branch into all possible second words, and so on. This
+procedure forms a tree, and any path from the root of this tree to any
+intermediate node is a valid, but perhaps very unlikely, sentence. See
+Fig.~\ref{fig:searchspace} for the illustration.  The conditional probabilities
+of all these paths, or sentences, can be computed as we expand this tree down by
+simply following Eq.~\eqref{eq:condlm}.
+
+\begin{figure}[t]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.98\columnwidth]{figures/searchspace.pdf}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.98\columnwidth]{figures/searchspace_1sent.pdf}
+    \end{minipage}
+
+    \vspace{3mm}
+
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        (a)
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        (b)
+    \end{minipage}
+    \caption{(a) Search space depicted as a tree. (b) A red curve with an arrow
+    shows one sentence from this larger search space.}
+    \label{fig:searchspace}
+\end{figure}
+
+Of course, we cannot compute the conditional probabilities of all possible
+sentences. Hence, we must resort to some kind of {\em approximate search}. Wait,
+{\em search}? Yes, this whole procedure of finding a maximally-likely
+translation is equivalent to searching through a search space, in this case a
+tree, of all possible sentences for one sentence that has the highest
+conditional probability.
+
+\begin{figure}[t]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.98\columnwidth]{figures/greedy_search.pdf}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.98\columnwidth]{figures/beamsearch_k3.pdf}
+    \end{minipage}
+
+    \vspace{3mm}
+
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        (a)
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        (b)
+    \end{minipage}
+    \caption{(a) Greedy search. (b) Beam search with the beam width set to $3$.}
+    \label{fig:beamsearch}
+\end{figure}
+
+
+
 \alert{TBD}
 
 \section{Attention-based Neural Machine Translation}
