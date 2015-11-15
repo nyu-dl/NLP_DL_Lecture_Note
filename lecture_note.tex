@@ -5435,10 +5435,51 @@ It means that the sequence $(w_1',w_2)$ is more likely than $(w_1, w_2)$, but
 the greedy search algorithm is unable to notice this, because simply $p(w_1) >
 p(w_1')$.  
 
+Unfortunately, the only way to completely avoid this undesirable situation is to
+consider all the possible paths starting from the very first time step. This is
+exactly the reason why we introduced the greedy search in the first place, but
+the greedy search is {\em too} greedy. The question is then whether there is
+something in between the exact search and the greedy search.
 
+\paragraph{Beam Search}
 
+Let us start from the very first position $t=1$. First, we compute the
+conditional probabilities of all the words in the vocabulary:
+\begin{align*}
+    p(y_1=w|X)\text{ for all }w\in V.
+\end{align*}
+Among these, we choose the $K$ most likely words and initialize the $K$
+hypotheses:
+\begin{align*}
+    (w_1^1),(w_2^1), \ldots, (w_K^1)
+\end{align*}
+We use the subscript to denote the hypothesis and the subscript the time step.
+As an example, $w_1^1$ is the first hypothesis at time step $1$.
 
-
+For each hypothesis, we compute the next conditional probabilities of all the
+words in the vocabulary:
+\begin{align*}
+    p(y_2=w|y_{<1}=(w_i^1), X)\text{ for all }w \in V,
+\end{align*}
+where $i=1, \ldots, K$. 
+We then have $K \times |V|$ candidates with the corresponding probabilities:
+\begin{align*}
+    K \underbrace{\left\{
+        \begin{array}{c c c}
+                p(w_1^1, w_{c,1}^2),& \ldots,& p(w_1^1, w_{c,|V|}^2) \\
+                p(w_2^1, w_{c,1}^2),& \ldots,& p(w_2^1, w_{c,|V|}^2) \\
+                                   &\vdots& \\
+            p(w_K^1, w_{c,1}^2),& \ldots,& p(w_K^1, w_{c,|V|}^2) \\
+        \end{array}
+    \right.}_{|V|}
+\end{align*}
+Among these $K \times |V|$ candidates, we choose the $K$ most likely candidates:
+\begin{align*}
+    (w_1^1, w_1^2), (w_2^1, w_2^2), \ldots, (w_K^1,w_K^2).
+\end{align*}
+Starting from these $K$ new hypotheses, we repeat the process of computing the
+probabilities of all $K \times |V|$ possible candidates and choosing among them
+the $K$ most likely new hypotheses. 
 
 \begin{figure}[t]
     \centering
@@ -5449,11 +5490,93 @@ p(w_1')$.
     \label{fig:beamsearch}
 \end{figure}
 
+It should be clear that this procedure, called {\em beam search} and shown in
+Fig.~\ref{fig:beamsearch}, becomes
+equivalent to the exact search, as $K\to \infty$. Also, when $K=1$, this
+procedure is equivalent to the greedy search. In other words, this beam search
+interpolates between the exact search, which is computationally intractable but
+exact, and the greedy search, which is computationally very cheap but probably
+quite inexact, by changing the size $K$ of hypotheses maintained throughout the
+search procedure. 
 
+How do we choose $K$? One might mistakenly think that we can simply use as large
+$K$ as possible given the constraints on computation and memory. Unfortunately,
+this is not necessarily true, as this interpolation by $K$ is not monotonic.
+That is, the quality of the translation found by the beam search with a larger
+$K$ is not necessarily better than the translation found with a smaller $K$.
 
-\alert{TBD}
+Let us consider the case of vocabulary having three symbols $\{ a, b, c\}$ and
+any valid translation being of a length $3$. In the first step, we have
+\begin{align*}
+    p(a) = 0.5, p(b) = 0.15, p(c) = 0.45.
+\end{align*}
+In the case of $K=1$, i.e., {\em greedy search}, we choose $a$. If $K=2$, we
+will keep $(a)$ and $(c)$. 
+
+Given $a$ as the first symbol, we have
+\begin{align*}
+    p(a|a) = 0.4, p(b|a) = 0.3, p(c|a) = 0.3,
+\end{align*}
+in which case, we keep $(a,a)$ with $K=1$. With $K=2$, we should check also
+\begin{align*}
+    p(a|c) = 0.45, p(b|c) = 0.45, p(c|c) = 0.1,
+\end{align*}
+from which we maintain the hypotheses $(c,a)$ and $(c,b)$ ($0.45 \times 0.45$
+and $0.45 \times 0.45$, respectively.) Note that with $K=2$,
+we have discarded $(a,a)$.
+
+Now, the greedy search ends by computing the last conditional probabilities:
+\begin{align*}
+    p(a|a,a) = 0.9, p(b|a,a) = 0.05, p(c|a,a) = 0.05.
+\end{align*}
+The final verdict from the greedy search is therefore $(a,a,a)$ with its
+probability being $0.5 \times 0.4 \times 0.9 = 0.18$.
+
+What happens with the beam search having $K=2$? We need to check the following
+conditional probabilities:
+\begin{align*}
+    &p(a|c,a) = 0.7, p(b|c,a) = 0.2, p(c|c,a) =0.1 \\
+    &p(a|c,b) = 0.4, p(b|c,b) = 0.0, p(c|c,b) =0.6 \\
+\end{align*}
+From here we consider $(c,a,a)$ and $(c,b,c)$ with the corresponding
+probabilities $0.45 \times 0.45 \times 0.7=0.14175$ and $0.45 \times 0.45 \times
+0.6 = 0.1215$. Among these two, $(c,a,a)$ is finally chosen, due to its higher
+probability than that of $(c,b,c)$.
+
+In summary, the greedy search found $(a,a,a)$ whose probability is
+\begin{align*}
+    p(a,a,a) = 0.18,
+\end{align*}
+and the beam search with $K=2$ found $(c,a,a)$ whose probability is
+\begin{align*}
+    p(c,a,a) = 0.14175.
+\end{align*}
+Even with a larger $K$, the beam search found a worse translation!
+
+Now, clearly, what one can do is to set the maximum beam width $\bar{K}$ and try
+with all possible $1 \leq K \leq \bar{K}$. Among the translations given by
+$\bar{K}$ beam search procedures, the best translation can be selected based on
+their corresponding probabilities. From the point of view of computational
+complexity, this is perhaps the best approach to upper-bound the worst-case
+memory consumption. Doing the beam search once with $\bar{K}$ or multiple beam
+searches with $K=1,\ldots,\bar{K}$ are equivalent in terms of memory
+consumption, i.e., both are $O(K|V|)$. Furthermore, the worst-case computation
+is $O(K|V|)$ (assuming a constant time computation for computing each
+conditional probability.) In practice however, the constant in front of $K|V|$
+does matter, and we often choose $K$ based on the translation quality of the
+validation set, after trying a number of values--$\left\{ 1, 2, 4, 8, 16
+\right\}$.
+
+If you're interested in how to improve beam search by backtracking so that the
+beam search becomes {\em complete}, refer to, e.g.,
+\cite{furcy2005limited,zhou2005beam}. If you're interested in general search
+strategies, refer to \cite{russell1995artificial}.  Also, in the context of
+statistical machine translation, it is useful to read \cite{koehn2004pharaoh}.
+
 
 \section{Attention-based Neural Machine Translation}
+
+
 
 \alert{TBD}
 
