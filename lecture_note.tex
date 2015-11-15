@@ -135,6 +135,7 @@
     \overset{\raisebox{-0.3ex}[0.5ex][0ex]{%
     \ensuremath{\scriptscriptstyle e}}}{\nabla}}}
 \newcommand{\enhnabla}[0]{\nabla_{\hspace{-0.5mm}e}\,}
+\newcommand{\eos}[0]{\ensuremath{\left< \text{eos}\right>}}
 
 
 \newcommand{\todo}[1]{{\Large\textcolor{red}{#1}}}
@@ -192,6 +193,9 @@
     note will be constantly updated throughout the semester. Please, check for
     the latest version frequently.
 }
+
+\tableofcontents
+
 
 
 \chapter{Introduction}
@@ -5288,6 +5292,8 @@ Eq.~\eqref{eq:nmt_cost} with respect to all the parameters of both the encoder
 and decoder and maximize the cost function using stochastic gradient descent,
 just like any other neural network we have learned so far in this course.
 
+\subsection{Sampling vs. Decoding}
+
 \paragraph{Sampling}
 
 We are ready to compute the conditional distribution $P(Y|X)$ over all possible
@@ -5329,8 +5335,7 @@ cardinality of the set grows exponentially with respect to the number of words
 in a translation.) Thus, it only makes sense to solving the optimization problem
 above approximately.
 
-
-\subsection{Approximate Decoding: Beamsearch}
+\paragraph{Approximate Decoding: Beamsearch}
 
 Although it is quite clear that finding a translation $\tilde{Y}$ that maximizes
 the log-probability $\log P(\tilde{Y}|X)$ is extremely expensive, we will
@@ -5355,7 +5360,7 @@ simply following Eq.~\eqref{eq:condlm}.
     \hfill
     \begin{minipage}{0.48\textwidth}
         \centering
-        \includegraphics[width=0.98\columnwidth]{figures/searchspace_1sent.pdf}
+        \includegraphics[width=0.98\columnwidth]{figures/greedy_search.pdf}
     \end{minipage}
 
     \vspace{3mm}
@@ -5369,42 +5374,78 @@ simply following Eq.~\eqref{eq:condlm}.
         \centering
         (b)
     \end{minipage}
-    \caption{(a) Search space depicted as a tree. (b) A red curve with an arrow
-    shows one sentence from this larger search space.}
+    \caption{(a) Search space depicted as a tree. (b) Greedy search.}
     \label{fig:searchspace}
 \end{figure}
 
 Of course, we cannot compute the conditional probabilities of all possible
 sentences. Hence, we must resort to some kind of {\em approximate search}. Wait,
-{\em search}? Yes, this whole procedure of finding a maximally-likely
-translation is equivalent to searching through a search space, in this case a
-tree, of all possible sentences for one sentence that has the highest
-conditional probability.
+{\em search}? Yes, this whole procedure of finding the most likely translation
+is equivalent to searching through a space, in this case a tree, of all possible
+sentences for one sentence that has the highest conditional probability.
+
+The most basic approach to approximately searching for the most likely
+translation is to choose only a single branch at each time step $t$. In other
+words, 
+\begin{align*}
+    \hat{y}_t = \argmax_{w' \in V} \log p(y_t = w' | \hat{y}_{<t}, X),
+\end{align*}
+where the conditional probability is defined in Eq.~\eqref{eq:nmt_decoder_out},
+and $\hat{y}_{<t}=(\hat{y}_1, \hat{y}_2, \ldots, \hat{y}_{t-1})$ is a sequence
+of greedily-selected target words up to the $(t-1)$-th step. This procedure is
+repeated until the selected $\hat{y}_t$ is a symbol corresponding to the end of
+the translation (often denoted as \eos{}.) See Fig.~\ref{fig:searchspace}~(b)
+for illustration.
+
+There is a big problem of this {\em greedy search}. That is, as soon as it makes
+one mistake at one time step, there is no way for this search procedure to
+recover from this mistake. This happens because the conditional distributions at
+later steps depend on the choices made earlier. 
+
+Consider the following two sequences: $\left(w_1, w_2\right)$ and $\left(w_1',
+w_2\right)$. These sequences' probabilities are 
+\begin{align*}
+    &p(w_1, w_2) = p(w_1) p(w_2 | w_1), \\
+    &p(w_1', w_2)= p(w_1') p(w_2 | w_1')
+\end{align*}
+Let's assume that 
+\[
+    \lambda p(w_1) = p(w_1'),
+\]
+where $0 < \lambda < 1$, meaning that $p(w_1) > p(w_1')$. In this case, the
+greedy search will choose $w_1$ over $w_1'$ and ignore $w_1'$.
+
+Now we can see that there's a problem with this. Let's assume that
+\begin{align*}
+    \lambda p(w_2 | w_1) < p(w_2 | w_1') \iff p(w_2 | w_1) < \frac{1}{\lambda}
+    p(w_2 | w_1')
+\end{align*}
+where $\lambda$ was defined earlier. In this case,
+\begin{align*}
+    p(w_1, w_2) =& p(w_1) p(w_2 | w_1) 
+    = \lambda p(w_1') p(w_2 | w_1) \\ <&
+    \cancel{\lambda} p(w_1') \frac{1}{\cancel{\lambda}} p(w_2 | w_1') 
+    = p(w_1') p(w_2 | w_1') = p(w_1', w_2).
+\end{align*}
+In short,
+\begin{align*}
+    p(w_1, w_2) < p(w_1', w_2).
+\end{align*}
+It means that the sequence $(w_1',w_2)$ is more likely than $(w_1, w_2)$, but
+the greedy search algorithm is unable to notice this, because simply $p(w_1) >
+p(w_1')$.  
+
+
+
+
+
 
 \begin{figure}[t]
     \centering
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        \includegraphics[width=0.98\columnwidth]{figures/greedy_search.pdf}
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        \includegraphics[width=0.98\columnwidth]{figures/beamsearch_k3.pdf}
-    \end{minipage}
+    \centering
+    \includegraphics[width=0.7\columnwidth]{figures/beamsearch_k3.pdf}
 
-    \vspace{3mm}
-
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        (a)
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        (b)
-    \end{minipage}
-    \caption{(a) Greedy search. (b) Beam search with the beam width set to $3$.}
+    \caption{Beam search with the beam width set to $3$.}
     \label{fig:beamsearch}
 \end{figure}
 
