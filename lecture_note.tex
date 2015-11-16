@@ -5694,8 +5694,8 @@ the difference among all those context-dependent representations $\left\{
 
 \paragraph{Decoder with Attention Mechanism}
 
-Let us first think of what the memory state $\vz_t$ of the decoder (from
-Eq.~\eqref{eq:nmt_decoder}) does:
+Before anything let us think of what the memory state $\vz_t$ of the decoder
+(from Eq.~\eqref{eq:nmt_decoder}) does:
 \begin{align*}
     \vz_t = \phi_{\dec}\left( 
         \phi_{\dec}\left(
@@ -5708,21 +5708,99 @@ Eq.~\eqref{eq:nmt_decoder}) does:
         \left[ \mE_y^\top \vy_{t-1}; \vc \right]
     \right)
 \end{align*} 
+
 It is computed based on all the generated target words so far $(\tilde{y}_1,
 \tilde{y}_2, \ldots, \tilde{y}_{t-1})$ and the context vector\footnote{
     We will shortly switch to using a context {\em set} instead.
 }
-$\vc$ which is the summary of the source sentence.
+$\vc$ which is the summary of the source sentence. The very reason why I
+designed the decoder in this way is so that the memory state $\vz_t$ is
+informative of which target word should be generated at time $t$ {\em after}
+generating the first $t-1$ target words {\em given} the source sentence. In
+order to do so, $\vz_t$ must encode {\em what have been translated so far} among
+the words that are supposed to be translated (which is encoded in the context
+vector $\vc$.) Let's keep this in mind.
+
+In order to compute the new memory state $\vz_t$ with a {\em context set}
+$C=\left\{ \vh_1, \vh_2, \ldots, \vh_{T_x}\right\}$,
+we must first get one vector out of $T_x$ context vectors. Why is this
+necessary? Because we cannot have an infinitely large number of parameters to
+cope with any number of context vectors. Then, how can we get a single vector
+from an unspecified number of context vectors $\vh_t$'s?
+
+\begin{figure}[t]
+    \centering
+    \centering
+    \includegraphics[width=0.7\columnwidth]{figures/nmt_att.pdf}
+
+    \caption{Illustration of how the relevance score $e_{2,3}$ of the second
+    context vector $\vh_2$ at time step $3$ (dashed curves and box.)}
+    \label{fig:att1}
+\end{figure}
+
+First, let us score each context vector $\vh_j$ ($j=1, \ldots, T_x$) based on
+how {\em relevant} it is for translating a next target word. This scoring needs
+to be based on (1) the previous memory state $\vz_{t-1}$ which summarizes what
+has been translated up to the $(t-2)$-th word\footnote{
+    Think of why this is only up to the $(t-2)$-th word not up to the $(t-1)$-th
+    one.
+}, (2) the previously generated target word $\tilde{y}_{t-1}$, and (3) the
+$j$-th context vector $\vh_j$: 
+\begin{align*}
+    e_{j, t} = f_{\text{score}}(\vz_{t-1}, \mE_y^\top \tilde{y}_{t-1}, \vh_j).
+\end{align*}
+Conceptually, the score $e_{j,t}$ will be computed by {\em comparing}
+$(\vz_{t-1}, \tilde{y}_{t-1})$ with the context vector $\vc_j$. See
+Fig.~\ref{fig:att1} for graphical illustration.
+
+Once the scores for all the context vectors $\vh_j$'s ($j=1, \ldots, T_x$) are
+computed by $f_{\text{score}}$, we normalize them with a softmax function:
+\begin{align*}
+    \alpha_{j, t} = \frac{\exp(e_{j,t})}{\sum_{j'=1}^{T_x} \exp(e_{j',t})}.
+\end{align*}
+We call these normalized scores the {\em attention weights}, as they correspond
+to how much the {\em decoder attends} to each of the context vectors. This whole
+process of computing the attention weights is often referred to as an {\em
+attention mechanism} (see, e.g., \cite{cho2015describing}.)
+
+\begin{figure}[t]
+    \centering
+    \centering
+    \includegraphics[width=0.7\columnwidth]{figures/nmt_att_dec.pdf}
+
+    \caption{Computing the new memory state $\vz_t$ of the decoder based on the
+        previous memory state $\vz_{t-1}$, the previous target word
+    $\tilde{y}_{t-1}$ and the weighted average of context vectors according to
+the attention weights.}
+    \label{fig:att2}
+\end{figure}
+
+We take the weighted average of the context vectors with these attention
+weights:
+\begin{align*}
+    \vc_t = \sum_{j=1}^{T_x} \alpha_{j, t} \vh_j
+\end{align*}
+This weighted average is used to compute the new memory state $\vz_t$ of the
+decoder, which is identical to the decoder's update equation from the simple
+encoder-decoder model (see Eq.~\eqref{eq:nmt_decoder}) except that $\vc_t$ is
+used instead of $\vc$ ((a) in the equation below):
+\begin{align*}
+    \vz_t = \phi_{\dec}\left( \vz_{t-1}, \left[ \mE_y^\top \vy_{t-1};
+            \underbrace{\vc_t}_{\text{(a)}}
+    \right]\right)
+\end{align*}
+See Fig.~\ref{fig:att2} for the graphical illustration of how it works.
+
+Given the new memory state $\vz_t$ of the decoder, the output probabilities of
+all the target words in a vocabulary happen without any change from the simple
+encoder-decoder model in Sec.~\ref{sec:nmt_simple}.
 
 
+\subsection{What does the Attention Mechanism do?}
 
+\alert{TBD}
 
-
-
-
-
-
-
+\subsection{Does the Attention Mechanism Help?}
 
 \alert{TBD}
 
