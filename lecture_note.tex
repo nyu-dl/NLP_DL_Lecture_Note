@@ -158,6 +158,8 @@
 \newcommand{\train}{\text{train}}
 \newcommand{\val}{\text{val}}
 \newcommand{\init}{\text{init}}
+\newcommand{\fenc}{\text{fenc}}
+\newcommand{\renc}{\text{renc}}
 \newcommand{\enc}{\text{enc}}
 \newcommand{\dec}{\text{dec}}
 \newcommand{\test}{\text{test}}
@@ -878,6 +880,8 @@ function (thereby capturing even noise in the training set) will be penalized
 when measured by the validation cost function. 
 
 \subsection{Model Selection}
+\label{sec:hypothesis_space}
+
 In fact, the use of the validation cost does not stop at the early stopping.
 Rather, it has a more general role in model selection. First, we must talk about
 model selection itself.
@@ -4178,8 +4182,7 @@ computational intractability in Markov random fields.
 \begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{figures/mrflm_mblanket.pdf}
-    \caption{Gray nodes indicate the 
-    Markov blank of the fourth word.}
+    \caption{Gray nodes indicate the Markov blank of the fourth word.}
     \label{fig:mrf_lm_mblanket}
 \end{figure}
 
@@ -5183,6 +5186,7 @@ alternatives available at the moment are
 METEOR~\cite{denkowski:lavie:meteor-wmt:2014} and TER~\cite{snover2006study}.
 
 \section{Neural Machine Translation: \\ Simple Encoder-Decoder Model}
+\label{sec:nmt_simple}
 
 From the previous section and  from Eq.~\ref{eq:condlm}, it is clear that we
 need to model each conditional distribution inside the product as a function.
@@ -5575,6 +5579,148 @@ statistical machine translation, it is useful to read \cite{koehn2004pharaoh}.
 
 
 \section{Attention-based Neural Machine Translation}
+
+One important property of the simple encoder-decoder model for neural machine
+translation (from Sec.~\ref{sec:nmt_simple}) is that a whole source sentence is
+compressed into a single real-valued vector $\vc$. This sounds okay, since the
+space of all possible source sentences is {\em countable}, while the context
+vector space $\left[ -1, 1 \right]^d$ is {\em uncountable}. There exists a
+mapping from this sentence space to the context vector space, and all we need to
+ensure is that training the simple encoder-decoder model finds this mapping.
+This is conditioned on the assumption that the hypothesis space\footnote{
+    See Sec.~\ref{sec:hypothesis_space}.
+}
+defined by the
+model architecture--the number of hidden units and parameters-- includes this
+mapping from any source sentence to a context vector.
+
+Unfortunately, considering the complexity of any natural language sentence, it
+is quite easy to guess that this mapping must be highly nonlinear and will require
+a huge encoder, and consequently, a huge decoder to map back from a context
+vector to a target sentence. In fact, this fact was empirically validated last
+year (2014), when the almost identical models from two groups
+\cite{sutskever2014sequence,cho2014properties} showed vastly different
+performances on the same English--French translation task. The only difference
+there was that the authors of \cite{sutskever2014sequence} used a {\em much}
+larger model than the authors of \cite{cho2014properties} did.
+
+At a more fundamental level there's a question of whether a natural language
+sentence {\em should} be fully represented as a single vector. For instance,
+there is now a famous quote by Prof. Raymond Mooney\footnote{
+    \url{https://www.cs.utexas.edu/~mooney/}
+} 
+of the University of Texas at Austin: ``You can't cram the meaning of a whole
+\%\&!\$\# sentence into a single \$\&!\#* vector!''\footnote{
+    \url{http://nlpers.blogspot.com/2014/09/amr-not-semantics-but-close-maybe.html}
+} Though, our goal is not in answering this fundamental question from
+linguistics.
+
+Our goal is rather to investigate the possibility of avoiding this situation of
+having to learn a highly nonlinear, complex mapping from a source sentence to a
+single vector. The question we are more interested in is whether {\em there
+    exists a neural network that can handle a variable-length sentence by
+building a variable-length representation of it}. Especially, we are interested
+in whether we can build a neural machine translation system that can exploit a
+variable-length context representation.
+
+\paragraph{Variable-length Context Representation}
+
+In the simple encoder-decoder model, a source sentence, regardless of its
+length, was mapped to a single context vector by a recurrent neural network:
+\begin{align*}
+    \vh_t = \phi_{\enc}\left( \vh_{t-1}, \mE_x^\top \vx_t \right).
+\end{align*}
+See Eq.~\eqref{eq:nmt_encoder} and the surrounding text for more details.
+
+Instead, here we will encode a source sentence $X=(x_1, x_2, \ldots, x_{T_x})$
+with a {\em set $C$ of context vectors} $\vh_t$'s. This is achieved by having
+two recurrent neural networks rather than a single recurrent neural networks, as
+in the simple encoder-decoder model. The first recurrent neural network, to
+which we will refer as a {\em forward recurrent neural network}, reads the
+source sentence as usual and results in a set of {\em forward memory states}
+$\overrightarrow{\vh}_t$, for $t=1,\ldots,T_x$. The second recurrent neural
+network, a {\em reverse recurrent neural network}, reads the source sentence
+in a reverse order, starting from $x_{T_x}$ to $x_1$. This reverse network will
+output a sequence of {\em reverse memory states} $\overleftarrow{\vh}_t$, for
+$t=1, \ldots, T_x$.
+
+\begin{figure}[t]
+    \centering
+    \centering
+    \includegraphics[width=0.7\columnwidth]{figures/bi_encoder.pdf}
+
+    \caption{An encoder with a bidirectional recurrent neural network}
+    \label{fig:bienc}
+\end{figure}
+
+For each $x_t$, we will concatenate $\overrightarrow{\vh}_t$ and
+$\overleftarrow{\vh}_t$ to form a {\em context-dependent vector} $\vh_t$:
+\begin{align*}
+    \vh_t = \left[ \begin{array}{c}
+            \overrightarrow{\vh}_t \\
+            \overleftarrow{\vh}_t
+    \end{array} \right]
+\end{align*}
+We will form a {\em context set} with these context-dependent vectors $c=\left\{
+\vh_1, \vh_2, \ldots, \vh_{T_x}\right\}$. See Fig.~\ref{fig:bienc} for the
+graphical illustration of this process.
+
+Now, why is $\vh_t$ a {\em context-dependent vector}? We should look at what the
+input was to a function that computed $\vh_t$. The first half of $\vh_t$,
+$\overrightarrow{\vh}_t$, was computed by
+\begin{align*}
+    \overrightarrow{\vh}_t = \phi_{\fenc}\left( \phi_{\fenc}\left( \cdots,
+    \mE_x^\top \vx_{t-1}\right), \mE_x^\top \vx_{t}\right),
+\end{align*}
+where $\phi_{\fenc}$ is a forward recurrent activation function. From this we
+see that $\overrightarrow{\vh}_t$ was computed by all the source words up to
+$t$,
+i.e., $\vx_{\leq t}$. Similarly, 
+\begin{align*}
+    \overleftarrow{\vh}_t = \phi_{\renc}\left( \phi_{\renc}\left( \cdots,
+    \mE_x^\top \vx_{t+1}\right), \mE_x^\top \vx_{t}\right),
+\end{align*}
+where $\phi_{\renc}$ is a reverse recurrent activation function, and
+$\overleftarrow{\vh}_t$ depends on all the source words from $t$ to the end,
+i.e., $\vx_{\geq t}$. 
+
+In summary, $\vh_{t} =\left[ \overrightarrow{\vh}_t^\top;
+\overleftarrow{\vh}_t^\top \right]^\top$ is a vector representation of the
+$t$-th word, $x_t$, with respect to all the other words in the source sentence.
+This is why $\vh_t$ is a context-dependent representation. But, then, what is
+the difference among all those context-dependent representations $\left\{
+    \vh_1, \ldots, \vh_{T_x}
+\right\}$? We will discuss this shortly.
+
+\paragraph{Decoder with Attention Mechanism}
+
+Let us first think of what the memory state $\vz_t$ of the decoder (from
+Eq.~\eqref{eq:nmt_decoder}) does:
+\begin{align*}
+    \vz_t = \phi_{\dec}\left( 
+        \phi_{\dec}\left(
+            \phi_{\dec}\left(
+                \cdots, 
+                \left[ \mE_y^\top \vy_{t-3}; \vc \right]
+            \right),
+            \left[ \mE_y^\top \vy_{t-2}; \vc \right]
+        \right)
+        \left[ \mE_y^\top \vy_{t-1}; \vc \right]
+    \right)
+\end{align*} 
+It is computed based on all the generated target words so far $(\tilde{y}_1,
+\tilde{y}_2, \ldots, \tilde{y}_{t-1})$ and the context vector\footnote{
+    We will shortly switch to using a context {\em set} instead.
+}
+$\vc$ which is the summary of the source sentence.
+
+
+
+
+
+
+
+
 
 
 
