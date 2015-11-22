@@ -4029,17 +4029,35 @@ $k$-th word in the vocabulary is roughly proportional to the inner product
 between the context vector $\vh$ and the corresponding target word vector
 $\vu_k$.
 
-Now note that the dot product is a linear function. Given a fixed target word
-vector $\vu_k$, the ordering of three context vectors based on the mutual
-distances is preserved even after multiplying each of them with $\vu_k$. This is
-easy to check by observing that
+Now let us consider two context vectors $\vh_j$ and $\vh_k$. These contexts are
+followed by a similar set of words, meaning that the conditional distributions
+of the next word are similar to each other. Although these distributions are
+defined over all possibility target words, let us look at the probabilities of
+only one of the target words $w_l$: 
 \begin{align*}
-    \| \vu_k^\top \vh_i - \vu_k^\top \vh_j \|^2 = \underbrace{\vu_k^\top
-    \vu_k}_{=\text{constant}} \| \vh_i -
-    \vh_j \|^2,
+    p_j^l =& p(w_l | \vh_j) = \frac{1}{Z_j} \exp\left( \vw_l^\top \vh_j \right), \\
+    p_k^l =& p(w_l | \vh_k) = \frac{1}{Z_k} \exp\left( \vw_l^\top \vh_k \right).
 \end{align*}
-meaning that the distance after the dot product with $\vu_k$ is simply elongated
-by the norm of $\vu_k$.
+The ratio between $p_j^l$ and $p_k^l$ is then\footnote{
+    Note that both $p_j^l$ and $p_k^l$ are positive due to our use of {\em softmax}.
+}
+\begin{align*}
+    \frac{p_j^l}{p_k^l} = \frac{Z_k}{Z_j} \exp\left( \vw_l^\top (\vh_j -
+    \vh_k)\right).
+\end{align*}
+From this, we can clearly see that in order for the ratio $\tfrac{p_j^l}{p_k^l}$
+to be $1$, i.e., $p_j^l = p_k^l$, 
+\begin{align}
+    \label{eq:diff}
+    \vw_l^\top \left(\vh_j - \vh_k\right) = 0.
+\end{align}
+
+Now let us assume that $\vw_l$ is not an all-zero vector, as otherwise it will
+be too dull a case. In this case, the way to achieve the equality in
+Eq.~\eqref{eq:diff} is to drive the context vectors $\vh_j$ and $\vh_k$ to each
+other. In other words, the context vectors must be similar to each other (in
+terms of Euclidean distance) in order to result in similar conditional
+distributions of the next word.
 
 What does this mean? This means that the neural language model must project
 $(n-1)$-grams that are followed by the same word to nearby points in the context
@@ -5746,9 +5764,10 @@ has been translated up to the $(t-2)$-th word\footnote{
     one.
 }, (2) the previously generated target word $\tilde{y}_{t-1}$, and (3) the
 $j$-th context vector $\vh_j$: 
-\begin{align*}
+\begin{align}
+    \label{eq:nmt_score}
     e_{j, t} = f_{\text{score}}(\vz_{t-1}, \mE_y^\top \tilde{y}_{t-1}, \vh_j).
-\end{align*}
+\end{align}
 Conceptually, the score $e_{j,t}$ will be computed by {\em comparing}
 $(\vz_{t-1}, \tilde{y}_{t-1})$ with the context vector $\vc_j$. See
 Fig.~\ref{fig:att1} for graphical illustration.
@@ -5777,9 +5796,10 @@ the attention weights.}
 
 We take the weighted average of the context vectors with these attention
 weights:
-\begin{align*}
+\begin{align}
+    \label{eq:td_context}
     \vc_t = \sum_{j=1}^{T_x} \alpha_{j, t} \vh_j
-\end{align*}
+\end{align}
 This weighted average is used to compute the new memory state $\vz_t$ of the
 decoder, which is identical to the decoder's update equation from the simple
 encoder-decoder model (see Eq.~\eqref{eq:nmt_decoder}) except that $\vc_t$ is
@@ -5795,8 +5815,56 @@ Given the new memory state $\vz_t$ of the decoder, the output probabilities of
 all the target words in a vocabulary happen without any change from the simple
 encoder-decoder model in Sec.~\ref{sec:nmt_simple}.
 
+We will call this model, which has a bidirectional recurrent neural network as
+an encoder and a decoder with the attention mechanism, an {\em attention-based
+encoder-decoder model}. This approach was proposed last year (2014) in the
+context of machine translation in \cite{bahdanau2014neural} and has been studied
+extensively in \cite{luong2015effective}.
+
 
 \subsection{What does the Attention Mechanism do?}
+
+One important thing to notice is that this attention-based encoder-decoder model
+can be reduced to the simple encoder-decoder model easily. This happens when the
+attention mechanism $f_{\text{score}}$ in Eq.~\eqref{eq:nmt_score} returns a
+constant regardless of its input. When this happens, the context vector $\vc_t$
+at each time step $t$ (see Eq.~\eqref{eq:td_context}) is same for all the time
+steps $t=1,\ldots,T_y$:
+\begin{align*}
+    \vc_t = \frac{1}{T_x} \sum_{j=1}^{T_x} \vh_j.
+\end{align*}
+The encoder effectively maps the whole input sentence into a single vector,
+which was at the core of the simple encoder-decoder model from
+Sec.~\ref{sec:nmt_simple}. 
+
+This is not the only situation in which this type of behaviour happens. Another
+possible scenario is for the encoder to make the last memory states,
+$\overrightarrow{\vh}_{T_x}$ and $\overleftarrow{\vh}_1$, of the forward and
+reverse recurrent neural networks to have a special mark telling that these are
+the last states. The attention mechanism then can exploit this to assign a large
+score to these two memory states (but still constant across time $t$.) This will
+become even closer to the simple encoder-decoder model.
+
+The question is how we can avoid these degenerate cases. Or, {\em is it
+necessary for us to explicitly make these degenerate cases unlikely?} Of course,
+there is no single answer to this question. Let me give you my answer, which may
+differ from others' answer: {\em no}.
+
+The goal of introducing a novel network architecture is to guide a model
+according to our intuition or scientific observation so that it will do a better
+job at a target task. In our case, the attention mechanism was introduced based
+on our observation, and some intuition, that it is not desirable to ask the
+encoder to compress a whole source sentence into a single vector. 
+
+This incorporation of {\em prior knowledge} however should not put a {\em hard
+constraint}. We give a model a possibility of exploiting this prior knowledge,
+but should not force the model to use this prior knowledge exclusively. As this
+prior knowledge, based on our observation of a small portion of data, is not
+likely to be true in general, the model must be able to ignore this, if the data
+does not exhibit the underlying structure corresponding to this prior knowledge. 
+
+In this case of attention-based encoder-decoder model, 
+
 
 \alert{TBD}
 
