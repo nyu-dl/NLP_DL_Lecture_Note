@@ -201,6 +201,7 @@
 
 
 \chapter{Introduction}
+\label{chap:intro}
 
 This lecture is going to be the only one where I discuss some philosophical,
 meaning nonpractical, arguments, because according to Chris Manning and Hinrich
@@ -4145,6 +4146,7 @@ to project each high-dimensional word vector into a lower-dimensional space
 
 \subsection{Continuous Bag-of-Words Language Model: \\ Maximum Pseudo--Likelihood
 Approach}
+\label{sec:cbow}
 
 This is about time someone asks a question why we are only considering the {\em
 preceding} words when doing language modelling. Is it a good assumption that the
@@ -4842,6 +4844,7 @@ section, we must first discuss two issues; (1) where do we get training data?
 (2) how do we evaluate machine translation systems?
 
 \subsection{Parallel Corpora: Training Data for Machine Translation}
+\label{sec:parallel_corpora}
 
 First, let us consider again what the problem we're trying to solve here. It is
 machine translation, and from the description in the previous section and from
@@ -5021,6 +5024,7 @@ al.~\cite{smith2013dirt} available at
 
 
 \subsection{Automatic Evaluation Metric}
+\label{sec:bleu}
 
 Let's say we have trained a machine translation model on a training corpus. A
 big question follows: {\em how do we evaluate this model}?
@@ -5597,6 +5601,7 @@ statistical machine translation, it is useful to read \cite{koehn2004pharaoh}.
 
 
 \section{Attention-based Neural Machine Translation}
+\label{sec:att_mt}
 
 One important property of the simple encoder-decoder model for neural machine
 translation (from Sec.~\ref{sec:nmt_simple}) is that a whole source sentence is
@@ -5673,12 +5678,13 @@ $t=1, \ldots, T_x$.
 
 For each $x_t$, we will concatenate $\overrightarrow{\vh}_t$ and
 $\overleftarrow{\vh}_t$ to form a {\em context-dependent vector} $\vh_t$:
-\begin{align*}
+\begin{align}
+    \label{eq:cd_rep}
     \vh_t = \left[ \begin{array}{c}
             \overrightarrow{\vh}_t \\
             \overleftarrow{\vh}_t
     \end{array} \right]
-\end{align*}
+\end{align}
 We will form a {\em context set} with these context-dependent vectors $c=\left\{
 \vh_1, \vh_2, \ldots, \vh_{T_x}\right\}$. See Fig.~\ref{fig:bienc} for the
 graphical illustration of this process.
@@ -5774,9 +5780,10 @@ Fig.~\ref{fig:att1} for graphical illustration.
 
 Once the scores for all the context vectors $\vh_j$'s ($j=1, \ldots, T_x$) are
 computed by $f_{\text{score}}$, we normalize them with a softmax function:
-\begin{align*}
+\begin{align}
+    \label{eq:att_weight}
     \alpha_{j, t} = \frac{\exp(e_{j,t})}{\sum_{j'=1}^{T_x} \exp(e_{j',t})}.
-\end{align*}
+\end{align}
 We call these normalized scores the {\em attention weights}, as they correspond
 to how much the {\em decoder attends} to each of the context vectors. This whole
 process of computing the attention weights is often referred to as an {\em
@@ -5861,20 +5868,258 @@ constraint}. We give a model a possibility of exploiting this prior knowledge,
 but should not force the model to use this prior knowledge exclusively. As this
 prior knowledge, based on our observation of a small portion of data, is not
 likely to be true in general, the model must be able to ignore this, if the data
-does not exhibit the underlying structure corresponding to this prior knowledge. 
+does not exhibit the underlying structure corresponding to this prior knowledge.
+In this case of attention-based encoder-decoder model, the existence of those
+degenerate cases above is a direct evidence of what this attention-based model
+can do, if there is no such underlying structure present in the data. 
 
-In this case of attention-based encoder-decoder model, 
+Then, a natural next question is whether there are such structures that can be
+well exploited by this attention mechanism in real data. If we train this
+attention-based encoder-decoder model on the parallel corpora we discussed
+earlier in Sec.~\ref{sec:parallel_corpora}, what kind of structure does this
+attention-based model learn?
+
+In order to answer this question, we must first realize that we can easily
+visualize what is happening inside this attention-based model. First, note that
+given a pair of source $X$ and target $Y$ sentences,\footnote{
+    Note that if you're given only a source sentence, you can let the model
+    translate and align simultaneously.
+}
+the attention-based model
+computes an {\em alignment} matrix $A \in \left[ 0, 1\right]^{|X| \times |Y|}$:
+\begin{align*}
+    A = \left[ 
+        \begin{array}{c c c c}
+            \alpha_{1,1} & \alpha_{1,2} & \cdots & \alpha_{1, |Y|} \\
+            \alpha_{2,1} & \alpha_{2,2} & \cdots & \alpha_{2, |Y|} \\
+            \vdots & \vdots & \ddots & \vdots \\
+            \alpha_{|X|,1} & \alpha_{|X|, 2} & \cdots & \alpha_{|X|, |Y|} 
+        \end{array}
+    \right],
+\end{align*}
+where $\alpha_{j,t}$ is defined in Eq.~\eqref{eq:att_weight}.
+
+Each column $\va_t$ of this alignment matrix $A$ is how well each source word
+(based on its {\em context-dependent vector representation} from
+Eq.~\eqref{eq:cd_rep}) is aligned to the $t$-th target word. Each row $\vb_{j}$
+similarly shows how well each target word is aligned to the content-dependent
+vector of the $j$-th source word. In other words, we can simply draw the
+alignment matrix $A$ as if it were a gray scale 2-D image. 
+
+\begin{figure}[ht]
+    \centering
+    \begin{minipage}[b]{0.48\textwidth}
+        \raggedleft
+        \includegraphics[width=1.\columnwidth]{figures/EEA.pdf}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.48\textwidth}
+        \raggedleft
+        \includegraphics[width=1.\columnwidth]{figures/1511.pdf}
+    \end{minipage}
+
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        (a)
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        (b)
+    \end{minipage}
+
+    \begin{minipage}[b]{0.48\textwidth}
+        \raggedleft
+        \includegraphics[width=1.\columnwidth]{figures/2799.pdf}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.48\textwidth}
+        \raggedleft
+        \includegraphics[width=1.\columnwidth]{figures/374.pdf}
+    \end{minipage}
+
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        (c)
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        (d)
+    \end{minipage}
+
+    \caption{
+        Visualizations of the four sample alignment matrices. The alignment
+        matrices were computed from an attention-based translation model trained
+        to translate a sentence in English to French.
+        Reprinted from
+        \cite{bahdanau2014neural}.
+    }
+    \label{fig:alignment}
+\end{figure}
+
+In Fig.~\ref{fig:alignment}, the visualization of four alignment matrices is
+presented. It is quite clear, especially to a French-English bilingual speaker,
+that the model indeed captured the underlying structure of word/phrase mapping
+between two languages. For instance, focus on ``European Economic Area'' in
+Fig.~\ref{fig:alignment}~(a). The model correctly noticed that ``Area''
+corresponds to ``zone'', ``Economic'' to ``\'economique'', and ``European'' to
+``europ\'eenne'', without any supervision about this type of alignment.  
+
+This is nice to see that the model was able to notice these regularities from
+data without any explicit supervision. However, the goal of introducing the
+attention mechanism was not to get these pretty figures. After all, our goal is
+not to build an interpretable model, but a model that is predictive of the
+correct output given an input (see Chapter~\ref{chap:intro} and
+\cite{breiman2001statistical}.) In this regard, how much does the introduction
+of the attention mechanism help?
+
+In \cite{bahdanau2014neural}, the attention-based encoder-decoder model was
+compared against the simple encoder-decoder model in the task of English-French
+translation. They observed the relative improvement of up to 60\% (in terms of
+BLEU, see Sec.~\ref{sec:bleu},) as shown in Table~\ref{tab:att_nmt}.
+Furthermore, by using some of the latest techniques, such as handling large
+vocabularies \cite{jean2014using}, building a vocabulary of subword units
+\cite{sennrich2015neural} and variants of the attention mechanism
+\cite{luong2015effective}, it has been found possible to achieve a better translation
+quality with neural machine translation than the existing state-of-the-art
+translation systems.
+    
+
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{c|c|c}
+    Model & BLEU & Rel. Improvement \\
+    \hline
+    \hline
+    Simple Enc--Dec & 17.82 &  -- \\
+    Attention-based Enc--Dec & 28.45 & +59.7\% \\
+    Attention-based Enc--Dec (LV) & 34.11 & +90.7\% \\
+    Attention-based Enc--Dec (LV)$^\star$ & {\bf 37.19} & {\bf +106.0\%} \\
+    \hline
+    State-of-the-art SMT$^\circ$ & 37.03 & -- 
+    \end{tabular}
+    \caption{The translation performances and the relative improvements over the
+        simple encoder-decoder model on an English-to-French translation task
+        (WMT'14),
+    measured by BLEU \cite{bahdanau2014neural,jean2014using}. 
+$\star$: an ensemble of multiple attention-based models. $\circ$: the
+state-of-the-art phrase-based statistical machine translation
+system~\cite{Durrani2014}.}
+    \label{tab:att_nmt}
+\end{table}
 
 
-\alert{TBD}
 
-\subsection{Does the Attention Mechanism Help?}
+\section{Warren Weaver's Memorandum}
 
-\alert{TBD}
+In 1949 Warren Weaver\footnote{
+    Yes, this is the very same Weaver after which the building of the Courant
+    Institute of Mathematical Sciences has been named.
+} wrote a memorandum, titled $\left<\text{Translation}\right>$ on machine
+translation \cite{weaver1955translation}. Although this text was written way
+before computers have become ubiquitous,\footnote{
+    Although Weaver talks about modern computers over and over in his
+    memorandum, what he refers to is not exactly what we think of computers as
+    these days.
+} there are many interesting ideas that are closely related to what we have
+discussed so far in this chapter. Let us go over some parts of the Weaver's
+memorandum and see how the ideas there corresponds to modern-day machine
+translation.
 
-\section{History of Statistical Machine Translation}
+\paragraph{Necessity of Linguistic Knowledge}
 
-\alert{TBD}
+Weaver talks about a distinguished mathematician P who was surprised by his
+colleague. His colleague ``had an amateur interest in cryptography'', and one
+day presented P his method to ``decipher'' an encrypted Turkish text
+successfully. ``The most important point'', according to Weaver, from this
+instance is that ``the decoding was done by someone who did not know Turkish.''
+Now, this sounds familiar, doesn't it? 
+
+As long as there was a parallel corpus, we are able to use neural machine
+translation models, described throughout this chapter, without ever caring about
+which languages we are training a model to translate between.  Especially if we
+decide to consider each sentence as a sequence of {\em characters},\footnote{
+    In fact, only very recently people have started investigating the
+    possibility of building a machine translation system based on character
+    sequences \cite{ling2015character}. This has been made possible due to the
+    recent success of neural machine translation.
+}
+there is almost no need for any linguistic knowledge when building these neural
+machine translation systems. 
+
+This lack of necessity for linguistic knowledge is not new. In fact, the most
+widely studied and used machine translation approach, which is (count-based)
+statistical machine translation
+\cite{brown1990statistical,koehn2003statistical}, does not require any prior
+knowledge about source and target languages. All it needs is a large corpus.
+
+\paragraph{Importance of Context}
+
+Recall from Sec.~\ref{sec:att_mt} that the encoder of an attention-based neural
+machine translation uses a {\em bidirectional} recurrent neural network in order
+to obtain a context set. Each vector in the context set was considered a {\em
+context-dependent vector}, as it represents what the center word means with
+respect to all the surrounding words. This context dependency is a necessary
+component in making the whole attention-based neural machine translation, as it
+helps disambiguating the meaning of each word and also distinguishing multiple
+occurrences of a single word by their context.
+
+Weaver discusses this extensively in Sec.~3--4 in his memorandum. First, to
+Weaver, it was ``amply clear that a translation procedure that does little more
+than handle a one-to-one correspondence of words can not hope to be useful .. in
+which the problems of .. multiple meanings .. are frequent.'' In other words, it
+is simply not possible to look at each word separately from surrounding words
+(or context) and translate it to a corresponding target word, because there is
+uncertainty in the meaning of the source word which can only be resolved by
+taking into account its context.
+
+So, what does Weaver propose in order to address this issue? He proposes in
+Sec.~5 that if ``one can see not only the central word in question, but also say
+$N$ words on either side, then if [sic] $N$ is large enough one can
+unambiguously decide the meaning of the central word.'' If we consider only a
+single sentence and take the infinite limit of $N \to \infty$, we see that what
+Weaver refers to is exactly the bidirectional recurrent neural network used by
+the encoder of the attention-based translation system.  Furthermore, we see that
+the continuous bag-of-words language model, or Markov random field based
+language model, from Sec.~\ref{sec:cbow} exactly does what Weaver proposed by
+setting $N$ to a finite number.
+
+In Sec.~\ref{sec:data_sparsity}, we talked about the issue of data sparsity, and
+how it is desirable to have a larger $N$ but it's often not a good idea
+statistically to do so. Weaver was also worried about this by saying that ``it
+would hardly be practical to do this by means of a generalized dictionary which
+contains all possible phases [sic] $2N+1$ words long; for the number of such
+phases [sic] is horrifying.'' We learned that this issue of data sparsity can be
+largely avoided by adopting a fully parametric approach instead of a
+table-based approach in Sec.~\ref{sec:nlm}.
+
+\paragraph{Common base of human communications}
+
+Weaver suggested in the last section of his memorandum that ``perhaps the way''
+for translation ``is to descend, from each language, down to the common base of
+human communication -- the real but as yet undiscovered universal language --
+and then re-emerge by whatever particular route is convenient.'' He specifically
+talked about a ``universal language'', and this makes me wonder if we can
+consider the memory state of the recurrent neural networks (both of the encoder
+and decoder) as this kind of intermediate language. This view may sound radical,
+considering that what we've discussed so far has been confined to translating
+from one language to another. After all, this universal language of ours is very
+specific to only a single source language with respect to a single target
+language. This is however not a constraint on the neural machine translation by
+design, but simply a consequence of our having focused on this specific case. 
+
+Indeed, in this year (2015), researchers have begun to report that it is
+possible to build a neural machine translation model that considers multiple
+languages, and even further multiple tasks \cite{dong2015multi,luong2015}. More
+works in this line are expected, and it will be interesting to see if Weaver's
+prediction again turns out to be true.
+
+
+
+
+
+
 
 
 
