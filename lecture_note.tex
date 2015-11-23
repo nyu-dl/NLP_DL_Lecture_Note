@@ -6376,6 +6376,32 @@ mention to extract knowledge vectors of all the articles.\footnote{
 } It is an open question how this unreasonable amount of computation needed for
 search can be avoided.
 
+\paragraph{Why is this any significant?}
+
+One may naively think that if we train a large enough network with a large
+enough data which contains all those world knowledge, a trained network will be
+able to contain all those world knowledge (likely in a compressed form) in its
+parameters together with its network architecture. This is true up to a certain
+level, but there are many issues here. 
+
+First, the world knowledge we're talking about here contains all the knowledge
+accumulated so far. Even a human brain, arguably the best working neural network
+to date, cannot store all the world knowledge and must resort to searching over
+the external database of knowledge. It is no wonder we have libraries where
+people can go and look for relevant knowledge. 
+
+Second, the world knowledge is dynamic. Every day some parts of the world
+knowledge become obsolete, and at the same time previously unknown facts are
+added to the world knowledge. If anyone looked up ``Facebook'' before 2004, they
+would've ended up with yearly facebooks from American universities. Nowadays, it
+is almost certain that when a person looks up ``Facebook'', they will find
+information on ``Facebook'' the social network site. Having all the {\em
+current} world knowledge encoded in the model's parameters is not ideal in this
+sense. 
+
+
+
+
 \section{Larger-Context Language Understanding: Beyond Sentences}
 
 \alert{TBD}
