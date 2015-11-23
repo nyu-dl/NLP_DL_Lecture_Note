@@ -85,6 +85,7 @@
 \newcommand{\vf}[0]{\vect{f}}
 \newcommand{\vi}[0]{\vect{i}}
 \newcommand{\vo}[0]{\vect{o}}
+\newcommand{\vd}[0]{\vect{d}}
 \newcommand{\vy}[0]{\vect{y}}
 \newcommand{\vg}[0]{\vect{g}}
 \newcommand{\vm}[0]{\vect{m}}
@@ -360,6 +361,7 @@ insight/knowledge will be used for. And, this is the reason why we do not walk
 down this road.
 
 \section{Road we {\it will} take}
+\label{sec:intro}
 
 \subsection{Language as a Function}
 
@@ -2137,9 +2139,10 @@ the last memory state $\vh_l$ of the recurrent neural network. We will
 affine-transform $\vh_l$ followed by the {\em softmax} function to obtain the
 conditional distribution of the output $y \in \left\{ 1, 2, 3 \right\}$ ($1$:
 positive, $2$: neutral and $3$: negative):
-\begin{align*}
+\begin{align}
+    \label{eq:multiclass}
     \mu = \left[ \mu_1, \mu_2, \mu_3 \right]^\top = \softmax(\mV \vh_l),
-\end{align*}
+\end{align}
 where $\mu_1$, $\mu_2$ and $\mu_3$ are the probabilities of ``positive'',
 ``neural'' and ``negative''. See Eq.~\eqref{eq:softmax} for more details on the
 softmax function.
@@ -3141,6 +3144,13 @@ or detect, the existence or lack of these dependencies? Do we need to manually
 code this up? I will leave these questions for you to figure out.
 
 
+\section{Recurrent Neural Network with Infinite Memory}
+
+Before finishing this chapter, I would like to discuss recent 
+
+\alert{TBD}
+
+
 \chapter{Neural Language Models}
 \label{chap:nlm}
 
@@ -3884,9 +3894,10 @@ as a function approximator here,\footnote{
 } 
 these vectors will be multiplied with a weight matrix $\mE$. After this, we get
 a sequence of continuous vectors $(\vp^1, \vp^2, \ldots, \vp^{n-1})$, where
-\begin{align*}
+\begin{align}
+    \label{eq:nlm_first_layer}
     \vp^j = \mE^\top \vw^j
-\end{align*}
+\end{align}
 and $\mE \in \RR^{|V| \times d}$. 
 
 Before continuing to build this function, let us see what it means to multiply
@@ -4336,8 +4347,8 @@ linguistics and these more recent neural approaches. I will not go into any
 further detail in this course, but I encourage readers to read \cite{Omer2014}.
 
 
-\subsection{Semi-Supervised Learning with
-Pretrained Word Embeddings}
+\subsection{Semi-Supervised Learning with Pretrained Word Embeddings}
+\label{sec:semi_emb}
 
 One thing I want to emphasize in these language models, including $n$-gram
 language model, neural language model and continuous bag-of-words model, is that
@@ -4729,6 +4740,7 @@ natural language sentences that are complement to each other. However, it is not
 crystal clear how these captured structures differ from each other.
 
 \chapter{Neural Machine Translation}
+\label{chap:nmt}
 
 Finally, we have come to the point in this course where we discuss an {\em
 actual} natural language task. In this chapter, we will discuss how translation
@@ -6130,12 +6142,241 @@ prediction again turns out to be true.
 
 \section{Multimedia Description Generation as Translation}
 
+Those who have followed this course closely so far must have noticed that the
+neural machine translation model described in the previous chapter is quite
+general in the sense that the input to the model does not have to be a sentence.
+In the case of the simple encoder-decoder model from Sec.~\ref{sec:nmt_simple},
+it is clear that any type of input $X$ can be used instead of a sentence, as
+long as there is a feature extractor that returns the vector representation
+$\vc$ of the input.
 
-\alert{TBD}
+And, fortunately, we already learned how to build a feature extractor throughout
+this course. Almost every single model (that is, a neural network in our case)
+converts an input into a continuous vector. Let us take a multilayer perceptron
+from Sec.~\ref{sec:mlp} as an example. Any classifier built as a multilayer
+perceptron can be considered as a two-stage process (see
+Sec.~\ref{sec:example2}.) First, the feature vector of the input is extracted
+(see Eq.~\eqref{eq:phi}):
+\begin{align*}
+    \phi(x) = \sigma(u x + c).
+\end{align*}
+The extracted feature vector $\phi(x)$ is then affine-transformed, followed by
+softmax function. This results in a conditional distribution over all possible
+labels (see Eq.~\eqref{eq:multiclass}.)
 
+This means that we can make the simple encoder-decoder model to work with
+non-language input simply by replacing the recurrent neural network based
+encoder with the feature extraction stage of the multilayer perceptron.
+Furthermore, it is possible to {\em pretrain} this feature extractor by training
+the whole multilayer perceptron on a separate classification dataset.\footnote{
+    This way of using a feature extractor pretrained from another network has
+    become a {\em de facto} standard in many of the computer vision tasks
+    \cite{sermanet2013overfeat}. This
+    is also closely related to semi-supervised learning with pretrained word
+    embeddings which we discussed in Sec.~\ref{sec:semi_emb}. In that case, it
+    was only the first input layer that was pretrained and used later (see
+    Eqs.~\eqref{eq:nlm_first_layer}--\eqref{eq:word_emb}.)
+}
 
-\section{Natural Language Understanding with Word Knowledge}
+This approach of using the encoder-decoder model for describing non-language
+input has become popular in recent years (especially, 2014 and 2015,) and has
+been applied to many applications, including image/video description generation
+and speech recognition. For an extensive list of these applications, I refer the
+readers to a recent review article by Cho et al.~\cite{cho2015describing}.
 
+\paragraph{Example: Image Caption Generation}
+
+Let me take as an example the task of image caption generation.  The possibility
+of using the encoder-decoder model for image caption generation was noticed by
+several research groups (almost simultaneously) last year (2014)
+\cite{Kiros-et-al-ICML2014,vinyals2014show,Karpathy+Li-arxiv2014,Mao+al-arxiv2014,Donahue-et-al-arxiv2014,Fang-et-al-arxiv2014,Chen+Zitnick-arxiv2014}.\footnote{
+    I must however make a note that Kiros et al.~\cite{Kiros-et-al-ICML2014}
+    proposed a fully neural network based image caption generation earlier than
+    all the others cited here did.
+} The success of neural machine translation in \cite{sutskever2014sequence} and
+earlier success of deep convolutional network on object recognition (see, e.g.,
+\cite{krizhevsky2012imagenet,simonyan2014very,szegedy2014going}) inspired them
+the idea to use the deep convolutional network's feature extractor together with
+the recurrent neural network decoder for the task of {\em image caption
+generation}. 
+
+\begin{wrapfigure}{l}{0.5\textwidth}
+    \centering
+    \includegraphics[width=0.5\columnwidth]{figures/nmt_att_caption.pdf}
+    \caption{Image caption generation with the attention-based
+    encoder-decoder model \cite{xu2015show}.}
+    \label{fig:att_img_cap}
+\end{wrapfigure}
+
+Right after these, Xu et al.~\cite{xu2015show} realized that it is possible to
+use the attention-based encoder-decoder model from Sec.~\ref{sec:att_mt} for
+image caption generation. Unlike the simple model, the attention-based model
+requires a context set instead of a context vector. The context set should
+contain multiple context vectors, and each vector should represent a spatial
+location with respect to the whole image, meaning each context vector is a {\em
+spatially-localized, context-dependent image descriptor}. This was achieved by
+using the last {\em convolutional} layer's activations of the pretrained deep
+convolutional network instead of the last {\em fully-connected} layer's. See
+Fig.~\ref{fig:att_img_cap} for graphical illustration of this approach.
+
+These approaches based on neural networks, or in other words based on
+distributed representations, have been successful at image caption generation.
+Four out of five top rankers in the recent Microsoft CoCo Image Captioning
+Challenge 2015\footnote{
+    \url{http://mscoco.org/dataset/\#captions-leaderboard}
+} 
+were using variants of the neural encoder-decoder model, based on human
+evaluation of the captions. 
+
+\section{Language Understanding with World Knowledge}
+
+In Sec.~\ref{sec:intro}, we talked about how we view natural languages as a
+function. This function of natural language maps from a tuple of a speaker's
+speech, a listener's mental state and {\em the surrounding world} to the
+listener's reaction, often as a form of natural language response.
+Unfortunately, in order to make it manageable, we decided to build a model that
+approximates only a part of this true function. 
+
+\paragraph{Immediate state of the surrounding world} 
+
+In this course of action, one thing we have dropped out is the surrounding
+world. The surrounding world may mean many different things. One of them is
+the current state of the surrounding world. As an example, when I say ``look at
+this cute llama,'' it is quite likely that the surrounding world at the current
+state contains either an actual llama or at least a picture of a llama. A
+listener then understands easily what a llama is even without having known what
+a llama is in advance. By looking at the picture of llama, the listener makes a
+mental note that the llama looks similar to a camel and therefore must be a
+four-legged animal.
+
+If the surrounding world is not taken into account, as we've been doing so far,
+the listener can only generalize based on the context words. Just like how the
+neural language model from Sec.~\ref{sec:nlm} generalized to unseen, or rarely
+seen words, the listener can infer that ``llama'' must be a type of animal by
+remembering that the phrase ``look at this cute'' has mainly been followed by an
+animal such as ``cat'' or ``dog''. However, it is quite clear that ``look at
+this cute'' is also followed by many other nouns, including ``baby'', ``book''
+and so on.
+
+The question is then how to exploit this. How can we incorporate, for instance,
+vision information from the surrounding world into natural language
+understanding? 
+
+The simplest approach is to simply concatenate a word embedding vector (see
+Eq.~\eqref{eq:word_emb}) and a corresponding image vector (obtained from an
+existing feature extractor, see above) \cite{kiela2014learning}. This can be
+applied to any existing language models such as neural language model (see
+Sec.~\ref{sec:nlm}) and neural machine translation model (see
+Chapter~\ref{chap:nmt}.) This approach gives a strong signal to the model the
+similarities among different words based on the corresponding objects'
+appearances. This approach of concatenating vectors of two different modalities,
+e.g., language and vision, was earlier proposed in \cite{weston2010large}. 
+
+A more sophisticated approach is to design and train a model to solve a task
+that requires tight interaction between language and other modalities. As our
+original goal is to build a {\em natural language function}, all we need to do
+is to build a function approximator that takes as input both language and other
+modalities. Recently, Antol et al.~\cite{VQA} built a large-scale dataset of
+question-answer-image triplets, called visual question answering (VQA) for this
+specific purpose. They have carefully built the dataset such that many, if not
+most, questions can only be answered when the accompanying image is taken into
+consideration. Any model that's able to solve the questions in this dataset well
+will have to consider both language and vision.
+
+\paragraph{Knowledge base: Lost in a library} 
+
+So far, we have talked about incorporating an immediate state of the surrounding
+world. However, our use of languages is more sophisticated. This is especially
+apparent in written languages. Let us take an example of me writing this lecture
+note. It is not the case where I simply sit and start writing the whole text
+based purely on my mental state (with memory of my past research) and the
+immediate surrounding world state (which has almost nothing to do with.) Rather,
+a large part of this writing process is spent on going through various research
+articles and books written by others in order to find relevant details of the
+topic. 
+
+In this case, the surrounding world is a database in which human knowledge is
+stored. You can think of a library or the Internet. As the amount of knowledge
+is simply too large to be memorized in the entirety, it is necessary for a
+person to be able to search through the vast knowledge base. But, wait, what
+does it have to do with natural language understanding?
+
+Consider the case where the context phrase is ``Llama is a domesticated camelid
+from''. Without access to the knowledge base, or in this specific instance,
+access to Wikipedia, any language model can only say as much as that this
+context phrase is likely followed by a name of some place. This is especially
+true, if we assume that the training corpus did not mention ``llama'' at all.
+However, if the language model is able to search Wikipedia and condition on its
+search result, it suddenly becomes so obvious that this context phrase is
+followed by ``South America'' or the name of any region on Andean mountain
+rages. 
+
+Although this may sound too complicated a task to incorporate into a neural
+network, the concept of how to incorporate this is not necessarily complicated.
+In fact, we can use the attention mechanism, discussed in Sec.~\ref{sec:att_mt},
+almost as it is. Let us describe here a conceptual picture of how this can be
+done.
+
+Let $D=\left\{ \vd_1, \vd_2, \ldots, \vd_M \right\}$ be a set of knowledge
+vectors. Each knowledge vector $\vd_i$ is a vector representation of a piece of
+knowledge. For instance, $\vd_i$ can be a vector representation of one Wikipedia
+article. It is certainly unclear what is the best way to obtain this vector
+representation of an entire article, but let us assume that an oracle gave us a
+means to do so.
+
+Let us focus on recurrent language modelling from Sec.~\ref{sec:rlm}.\footnote{ 
+    This approach of using attention mechanism for external knowledge pieces has
+    been proposed recently in \cite{bordes2015large}, in the context of
+    question-answering. Here, we stick to language modelling, as the course has
+    not dealt with question-answering tasks.
+}
+At each time step, we have access to the following vectors:
+\begin{enumerate}
+    \itemsep 0em
+    \item Context vector $\vh_{t-1}$: the summary all the preceding words
+    \item Current word $w_t$: the current input word
+\end{enumerate}
+Similarly to what we have done in Sec.~\ref{sec:att_mt}, we will define a
+scoring function $f_{\text{score}}$ which scores each knowledge vector $\vd_i$ with respect to
+the context vector and the current word: 
+\begin{align*}
+    \alpha_{i,t} \propto \exp\left( f_{\text{score}}(\vd_i, \vh_{t-1}, \ve_{w_t}) \right),
+\end{align*}
+where $\ve_{w_t}$ is a vector representation of the current word $w_t$.  
+
+This score reflects the relevance of the knowledge in predicting the next word,
+and once it is computed for every knowledge vector, we compute the weighted sum
+of all the knowledge:
+\begin{align*}
+    \tilde{\vd}_t = \sum_{i=1}^M \alpha_{i,t} \vd_i.
+\end{align*}
+This vector $\tilde{\vd}_t$ is a vector summary of the knowledge relevant to the
+next word, taking into account the context phrase. In the case of an earlier
+example, the scoring function gives a high score to the Wikipedia article on
+``llama'' based on the history of preceding words ``Llama is a domesticated
+camelid from''. 
+
+This knowledge vector is used when updating the memory state of the recurrent
+neural network:
+\begin{align*}
+    \vh_t = f_{\text{rec}}\left( \vh_{t-1}, \ve_{w_t}, \tilde{\vd}_t \right).
+\end{align*}
+From this updated memory state, which also contains the knowledge extracted from
+the selected knowledge vector, the next word's distribution is computed
+according to Eq.~\eqref{eq:rnn_y_h}.
+
+One important issue with this approach is that the size of knowledge set $D$ is
+often extremely large. For instance, English Wikipedia contains more than 5M
+articles as of 23 Nov 2015.\footnote{
+    \url{https://en.wikipedia.org/wiki/Wikipedia:Statistics}
+} It easily becomes impossible to score each and every knowledge vector, not to
+mention to extract knowledge vectors of all the articles.\footnote{
+    This is true especially when those knowledge vectors are also updated during
+    training.
+} It is an open question how this unreasonable amount of computation needed for
+search can be avoided.
+
+\section{Larger-Context Language Understanding: Beyond Sentences}
 
 \alert{TBD}
 
