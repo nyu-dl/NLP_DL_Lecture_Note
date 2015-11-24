@@ -1,4 +1,5 @@
 \documentclass{report}
+\usepackage{authblk}
 \usepackage{mathptmx}
 \usepackage{url,latexsym,amsmath,amsthm,xspace,rotating,multirow,multicol,xspace,amssymb,paralist}
 \usepackage{euscript}
@@ -182,24 +183,60 @@
 \begin{document}
 
 \title{Natural Language Understanding with Distributed Representation}
-\author{Kyunghyun Cho\\New York University}
+\author{Kyunghyun Cho}
+\affil{
+    Courant Institute of Mathematical Sciences and \\
+    Center for Data Science,\\
+    New York University 
+}
 
 \maketitle
 \pagenumbering{arabic}
 
-{\it 
-    This is a lecture note used for the course DS-GA 3001 $\left<\right.$Natural
+\abstract{
+    This is a lecture note for the course DS-GA 3001 $\left<\right.$Natural
     Language Understanding with Distributed Representation$\left.\right>$ at the
     Center for Data Science\footnote{
         \url{http://cds.nyu.edu/}
-    }, New York University in Fall, 2015.  This lecture
-    note will be constantly updated throughout the semester. Please, check for
-    the latest version frequently.
+    }, New York University in Fall, 2015. As the name of the course suggests,
+    this lecture note introduces readers to a neural network based approach to
+    natural language understanding/processing. In order to make it as
+    self-contained as possible, I spend much time on describing basics of
+    machine learning and neural networks, only after which how they are used for
+    natural languages is introduced. On the language front, I almost solely
+    focus on language modelling and machine translation, two of which I
+    personally find most fascinating and most fundamental to natural language
+    understanding.
+    
+    After about a month of lectures and about 40 pages of writing this lecture
+    note, I found this fascinating note \cite{goldberg2015primer} by Yoav
+    Goldberg on neural network models for natural language processing. This note
+    describes more details with wider topics on natural language processing with
+    distributed representations, and I highly recommend you to read it
+    (hopefully along with this lecture note.) I seriously wish Yoav had written
+    it earlier so that I could've simply used his excellent note for my course.
+
+    This lecture note were written quite hastily as the course progressed,
+    meaning that I could spare only about 100 hours in total for this note. This
+    is my lame excuse for likely many mistakes in this lecture note, and I
+    kindly ask for your understanding in advance. Again, how grateful I would've
+    been if I found Yoav's note earlier.
+
+    I am planning to update this lecture note gradually over time, hoping that I
+    will be able to convince the Center for Data Science to let me teach the
+    same course next year. The latest version will always be available both in
+    pdf and in latex source code from
+    \url{https://github.com/nyu-dl/NLP_DL_Lecture_Note}. The arXiv version will
+    be updated whenever a major revision is made.
+
+    I thank all the students and non-students who took\footnote{
+        In fact, they are still taking the course as of 24 Nov 2015. They have
+        two guest lectures and a final exam left until the end of the course.
+    }
+    this course and David Rosenberg for feedback.
 }
 
 \tableofcontents
-
-
 
 \chapter{Introduction}
 \label{chap:intro}
@@ -567,9 +604,9 @@ distribution and the distance function.\footnote{Why?}
 This does not mean that we are doomed from the beginning. Instead of the
 full-blown description of the data distribution $p_{\text{data}}$, we will
 assume that someone miraculously gave us a finite set of pairs drawn from the
-data distribution. We will call this a training set $D$:
+data distribution. We will call this a training set:
 \begin{align*}
-    D=\left\{ (\vx^1, \vy^1), \ldots, (\vx^N, \vy^N) \right\}.  
+    \left\{ (\vx^1, \vy^1), \ldots, (\vx^N, \vy^N) \right\}.  
 \end{align*}
 
 As we have access to the samples from the data distribution, we can use Monte
@@ -2350,15 +2387,6 @@ the output sequence at each time step. This procedure is called {\em beam
 search}, and we will discuss more about this in a later lecture on neural
 machine translation.
 
-%\subsection{Variable-Length Output $y$: $|x|\neq|y|$}
-%
-%Now let us continue on to a much more interesting case of having a
-%variable-length output $y$ whose length differs from that of the input sequence
-%$x$. The most obvious, but important example is translation. Consider
-%translating from English to 
-%
-%\alert{TBD}
-
 \section{Gated Recurrent Units}
 
 \subsection{Making Simple Recurrent Neural Networks {\em Realistic}}
@@ -3144,11 +3172,9 @@ or detect, the existence or lack of these dependencies? Do we need to manually
 code this up? I will leave these questions for you to figure out.
 
 
-\section{Recurrent Neural Network with Infinite Memory}
-
-Before finishing this chapter, I would like to discuss recent 
-
-\alert{TBD}
+%\section{Recurrent Neural Network with Infinite Memory}
+%
+%\alert{TBD: in a next version, hopefully..}
 
 
 \chapter{Neural Language Models}
@@ -3195,14 +3221,11 @@ approaching natural language as a means for one to communicate ideas to a
 listener. In this sense, language use is a function which takes as input the
 surrounding environment, including the others' speech, and returns linguistic
 response, and this function is {\em not} given but learned via observing others'
-use of language 
-%(\alert{TBD: some citation on baby's language learning}) 
-and the
-reinforcement by the surrounding environment~\cite{skinner2014verbal}. Also,
-throughout this course, we are not concerned too much about the existing
-syntactic, or grammatical, structures underlying natural language, which makes
-it difficult for us to say anything about the grammatical correctness of a given
-sentence.
+use of language and the reinforcement by the surrounding
+environment~\cite{skinner2014verbal}. Also, throughout this course, we are not
+concerned too much about the existing syntactic, or grammatical, structures
+underlying natural language, which makes it difficult for us to say anything
+about the grammatical correctness of a given sentence.
 
 In short, we take the route here that the likeliness of a sentence be determined
 based on its agreement with common sense. The common sense here is captured by
@@ -3299,6 +3322,7 @@ In the remaining of this chapter, I will thus talk about model-free approaches
 (as opposed to these model-based approaches.)
 
 \subsection{Quick Note on Linguistic Units}
+\label{sec:ling_unit}
 
 Before continuing, there is one question that must be bugging you, or at least
 has bugged me a lot: {\em what is the minimal linguistic unit?} 
@@ -4149,11 +4173,6 @@ principal component analysis (PCA) or t-SNE~\cite{VanDerMaaten08}, can be used
 to project each high-dimensional word vector into a lower-dimensional space
 (often 2-D or 3-D). 
 
-%This input weight matrix, or oft-called a word embedding matrix, has been found
-%to have an interesting use case.
-%
-%\alert{TBD}
-
 
 \subsection{Continuous Bag-of-Words Language Model: \\ Maximum Pseudo--Likelihood
 Approach}
@@ -4606,10 +4625,6 @@ different way, as in Fig.~\ref{fig:rnn_lm2}.
     }
     \label{fig:rnn_lm2}
 \end{figure}
-
-%\subsection{Generating Sentences from Recurrent Neural Network Language Model}
-%
-%\alert{TBD}
 
 \section{How do $n$-gram language model, neural language model and RNN-LM
 compare?}
@@ -6138,7 +6153,13 @@ works in this line are expected, and it will be interesting to see if Weaver's
 prediction again turns out to be true.
 
 
-\chapter{Final Words: \\ Beyond Natural Languages}
+\chapter{Final Words}
+
+Let me wrap up this lecture note by describing some aspects of natural language
+understanding with distributed representations that I have not discussed in this
+course. These are the topics that I would have spent time on, had the course
+been scheduled to last twice the duration as it is now. Afterward, I will
+finalize this whole lecture note with a short summary.
 
 \section{Multimedia Description Generation as Translation}
 
@@ -6402,33 +6423,162 @@ sense.
 
 
 
-\section{Larger-Context Language Understanding: Beyond Sentences}
+\section{Larger-Context Language Understanding: \\
+    Beyond Sentences and Beyond Words}
 
-\alert{TBD}
+If we view natural language as a function, it becomes clear that what we've
+discussed so far throughout the course is heavily restrictive. There are two
+reasons behind this restriction. 
+
+First, what we have discussed so far has narrowly focused on handling a
+sentence. In Sec.~\ref{sec:lm}, I have described language model as a way to
+model a {\em sentence} probability $p(S)$. This is a bit weird in the sense that
+we've been using a term ``language'' modelling not ``sentence'' modelling.
+Keeping it in mind, we can start looking at a probability of a document or
+discourse $D$ as a whole rather than as a product of sentence probabilities:
+\begin{align*}
+    p(D) = \prod_{k=1}^N p(S_k | S_{<k}),
+\end{align*}
+where the document $D$ consists of $N$ sentences. This approach is readily
+integrated into the language modelling approaches we discussed earlier in
+Chapter~\ref{chap:nlm} by
+\begin{align*}
+    p(D) = \prod_{k=1}^N \prod_{j=1}^{T_k} p(w_j | w_{<j}, S_{<k}).
+\end{align*}
+This is applicable to any language-related models we have discussed so far,
+including neural language model from Sec.~\ref{sec:nlm}, recurrent language
+model from Sec.~\ref{sec:rlm}, Markov random
+field language model from Sec.~\ref{sec:cbow} and neural machine translation
+from Chapter~\ref{chap:nmt}.
+
+In the context of language modelling, two recent articles proposed to explore
+this direction. I refer the readers to \cite{wang2015larger} and
+\cite{ji2015document}.
+
+Second, we have stuck to representing a sentence as a sequence of words so far,
+despite a short discussion in Sec.~\ref{sec:ling_unit} where I strongly claim
+that this does not have to be. This is indeed true, and in fact, even if we
+replace most occurrence of ``word'' in this course with, for instance,
+``character'', all the arguments stand. Of course, by using smaller units than
+words, we run into many practical and theoretical issues. One most severe
+practical issue is that each sentence suddenly becomes much longer. One most
+sever theoretical issue is that it is a highly nonlinear mapping from a sequence
+of characters to its meaning, as we discussed earlier in
+Sec.~\ref{sec:ling_unit}. Nevertheless, the advance in computing and deep neural
+networks, which are capable of learning such a highly nonlinear mapping, have
+begun to let researchers directly work on this problem of using subword units
+(see, e.g., \cite{kim2015character,ling2015character}.) Note that I am not
+trying to say that characters are the only possible sub-word units, and recently
+an effective statistical approach to deriving sub-word units off-line was
+proposed and applied to neural machine translation in \cite{sennrich2015neural}.
 
 
-\section{Summary}
+\section{Warning and Summary}
+
+Before I finish this lecture note with the summary of what we have discussed
+throughout this course, let me warn you by quoting Claude Shannon
+\cite{shannon1956bandwagon}:\footnote{
+    I would like to thank Adam Lopez for pointing me to this quote.
+}
+
+\begin{quote}
+    \it
+    It will be all too easy for our somewhat artificial prosperity to collapse
+    overnight when it is realized that the use of a few exciting words like
+    information, entropy, redundancy, do not solve all our problems.
+\end{quote}
+
+Natural language understanding with distributed representation is a fascinating
+topic that has recently gathered large interest from both machine learning and
+natural language processing communities. This may give a wrong sign that this
+approach with neural networks is an ultimate winner in natural language
+understanding/processing, though without any ill intention. As Shannon pointed
+out, this prosperity of distributed representation based natural language
+understanding may collapse overnight, as can any other approaches out
+there.\footnote{
+    Though, it is interesting to note that information theory never really
+    collapsed overnight. Rather its prosperity has been continuing for more than
+    half a century since Shannon warned us about its potential overnight
+    collapse in 1956.
+} Therefore, I warn the readers, especially students, to keep this quote in
+their mind and remember that it is not a few recent successes of this approach
+to natural language understanding but the fundamental ideas underlying this
+approach that matter and should be remembered after this course.
+
+\paragraph{Summary}
+
+Finally, here goes the summary of what we have learned throughout this semester.
+We began our journey by a brief discussion on how we view human language as, and
+we decided to stick to the idea that a language is a function not an entity
+existing independent of the surrounding world, including speakers and listeners.
+Is this a correct way to view a human language? Maybe, maybe not.. I will leave
+it up to you to decide.
+
+In order to build a machine that can approximate this language function, in
+Chapter~\ref{chap:function_approx}, we studied basic ideas behind supervised
+learning in machine learning. We defined what a cost function is, how we can
+minimize it using an iterative optimization algorithm, specifically stochastic
+gradient descent, and learned the importance of having a validation set for both
+early-stopping and model selection. These are all basic topics that are dealt in
+almost any basic machine learning course, and the only thing that I would like
+to emphasize is the importance of {\em not looking at a held-out test set.} One
+must always select anything related to learning, e.g., hyperparameters, networks
+architectures and so on, based solely on a validation set. As soon as one tunes
+any of those based on the test set performance, any result from this tuning
+easily becomes invalid, or at least highly disputable.
+
+In Chapter~\ref{chap:nn}, we finally talked about {\em deep} neural networks, or
+more traditionally called multilayer perceptron.\footnote{
+    I personally prefer ``multilayer perceptron'', but it seems like it
+    has gone out of fashion.
+} I tried to go over basic, but important details as slowly as possible,
+including how to build a deep neural network based classifier, how to define a
+cost function and how to compute the gradient w.r.t. the parameters of the
+network. However, I must confess that there are better materials for this topic
+than this lecture note.
+
+We then moved on to recurrent neural networks in Chapter~\ref{chap:rnn}. This
+was a necessary step in order to build a neural network based model that can
+handle both variable-length input and output. Again, my goal here was to take as
+much time as it is needed to motivate the need of recurrent networks and to give
+you basic ideas underlying them. Also, I spent quite some time on why it has
+been considered difficult to train recurrent neural networks by stochastic
+gradient descent like algorithms, and as a remedy, introduced gated recurrent
+units and long short-term memory units. 
+
+Only after these long four to five weeks, have I started talking about how to
+handle language data in Chapter~\ref{chap:nlm}. I motivated neural language
+models by the lack of generalization and the curse of data sparsity. It is my
+regret that I have not spent much time on discussing the existing techniques for
+count-based $n$-gram language models, but again, there are much better materials
+and better lecturers for these techniques already. After the introduction of
+neural language model, I spent some time on describing how this neural language
+model is capable of generalizing to unseen phrases. Continuing from this neural
+language model, in Sec.~\ref{sec:rlm}, language modelling using recurrent neural
+networks was introduced as a way to avoid Markov assumption of $n$-gram language
+model.
+
+This discussion on neural language model naturally continued on to neural
+machine translation in Chapter~\ref{chap:nmt}. Rather than going directly into
+describing neural machine translation models, I have spent a full week on two
+issues that are often overlooked; data preparation in
+Sec.~\ref{sec:parallel_corpora} and evaluation in Sec.~\ref{sec:bleu}. I wish
+the discussion of these two topics has reminded students that machine learning
+is not only about algorithms and models but is about a full pipeline starting
+from data collection to evaluation (often with loops here and there.) This
+chapter finished with where we are in 2015, compared to what Weaver predicted in
+1949.
+
+Of course, there are so many interesting topics in this area of natural language
+understanding. I am not qualified nor knowledgeable to teach many, if not most,
+of those topics unfortunately, and have focused on those few topics that I have
+worked on myself. I hope this lecture note will serve at least as a useful
+starting point into more advanced topics in natural language understanding with
+distributed representations.
 
 
-\alert{TBD}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-\alert{\it Soon to appear}
 
 
 
