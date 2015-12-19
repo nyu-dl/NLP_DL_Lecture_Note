@@ -2834,7 +2834,7 @@ This derivative can be rewritten as
     \frac{\partial \underline{\vh}_{l_0+1}}{\partial
     \phi\left(x_{l_0+1}\right)}.
 \end{align*}
-Among these three terms in the left hand side, we will focus on the first one
+Among these three terms in the right hand side, we will focus on the first one
 (a) which can be further expanded as
 \begin{align}
     \label{eq:tderiv}
@@ -2861,7 +2861,7 @@ Among these three terms in the left hand side, we will focus on the first one
 Because this is a recurrent neural network, we can see that the analytical forms
 for the terms grouped by the parentheses in the above equation are identical
 except for the subscripts indicating the time index. In other words, we can
-simply only on one of those groups, and the resulting analytical form will be
+simply focus on one of those groups, and the resulting analytical form will be
 generally applicable to all the other groups.
 
 First, we look at Eq.~\eqref{eq:tderiv} (b), which is nothing but a derivative
@@ -3164,7 +3164,7 @@ a simple $\tanh$ unit.
 This is however not the case with the actual GRU or LSTM, because those update
 gates are {\em not} fixed but are adaptive with respect to the input. If the
 network detects that there is an important dependency being captured, the update
-gate will be closed ($u_j \approx 0$.) This will effectively strengthen the
+gate will be closed ($u_j \approx 0$). This will effectively strengthen the
 shortcut connection (see Eq.~\eqref{eq:gru_expand} (a).) When the network
 detects that there is no dependency anymore, it will open the update gate ($u_j
 \approx 1$), which effectively cuts off the shortcut. How does the network know,
@@ -5294,7 +5294,7 @@ Sec.~\ref{sec:nlm}.) $\vh_0$ is initialized as an all-zero vector.
 
 After reading the whole sentence up to $\vx_{T_x}$, the last memory state
 $\vh_{T_x}$ of the encoder summarizes the whole source sentence into a single
-vector, as shown in Fig.~\ref{fig:nmt_enc}~(a). Thanks to this encoder, we can now
+vector, as shown in Fig.~\ref{fig:nmt}~(a). Thanks to this encoder, we can now
 work with a single vector instead of a whole sequence of source words. Let us
 denote this vector as $\vc$ and call it a {\em context vector}.
 
