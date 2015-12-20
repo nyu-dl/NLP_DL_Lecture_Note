@@ -3164,7 +3164,7 @@ a simple $\tanh$ unit.
 This is however not the case with the actual GRU or LSTM, because those update
 gates are {\em not} fixed but are adaptive with respect to the input. If the
 network detects that there is an important dependency being captured, the update
-gate will be closed ($u_j \approx 0$). This will effectively strengthen the
+gate will be closed ($u_j \approx 0$.) This will effectively strengthen the
 shortcut connection (see Eq.~\eqref{eq:gru_expand} (a).) When the network
 detects that there is no dependency anymore, it will open the update gate ($u_j
 \approx 1$), which effectively cuts off the shortcut. How does the network know,
