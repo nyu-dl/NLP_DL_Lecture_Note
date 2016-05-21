@@ -1162,7 +1162,7 @@ approximate the conditional distribution $p(\vy | \vx)$:
 \begin{align}
     \label{eq:gaussian}
     \tilde{p}(\vy | \vx) = \prod_{k'=1}^k \frac{1}{\sqrt{2\pi}\sigma_{k'}} 
-\exp\left( \frac{(y_{k'} - \mu_{k'})^2}{2\sigma_{k'}^2} \right).
+\exp\left( -\frac{(y_{k'} - \mu_{k'})^2}{2\sigma_{k'}^2} \right).
 \end{align}
 The parameters for this conditional distribution are $\TT(\vx) = \left\{ 
     \mu_1, \mu_2, \ldots, \mu_k, \sigma_1, \sigma_2, \ldots, \sigma_k
