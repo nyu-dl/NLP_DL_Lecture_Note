@@ -1305,7 +1305,8 @@ affine transformation.
 In this case, the (empirical) cost function based on the KL divergence is
 \begin{align}
     \label{eq:cat_crossentropy}
-    C(\TT) = -\frac{1}{N} \sum_{n=1}^N \sum_{k=1}^K \II_{k=y^n} \mu_k,
+    C(\TT) = -\frac{1}{N} \sum_{n=1}^N \log \left(\sum_{k=1}^K \II_{k=y^n}
+        \mu_k\right),
 \end{align}
 where 
 \begin{align}
@@ -1553,7 +1554,7 @@ Let us try to generalize this simple, or rather simplest model, into a slightly
 more general setting. We will still look at the binary classification but with
 multiple hidden units and a multidimensional input such that:
 \begin{align*}
-    \phi(x) = U x + c,
+    \phi(x) = \sigma(U x + c),
 \end{align*}
 where $U \in \RR^{l \times d}$ and $c \in \RR^l$. Consequently, $w$ will be a
 $l$-dimensional vector.
