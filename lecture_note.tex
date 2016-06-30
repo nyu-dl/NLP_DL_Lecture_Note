@@ -2294,7 +2294,7 @@ definition of the conditional independence:
 \begin{align*}
     &\text{$Y_1$ and $Y_2$ are conditionally independent dependent on $X$} \\
     \iff&
-    p(Y_1, Y_2|X) = p(Y_1|X)p(Y_2|x).
+    p(Y_1, Y_2|X) = p(Y_1|X)p(Y_2|X).
 \end{align*}
 
 If the underlying, true conditional distribution obeyed this assumption of
@@ -2327,7 +2327,7 @@ Similarly to Eq.~\eqref{eq:rnn_layer}, we can think of implementing $f$ as
 \end{align*}
 
 There are two questions naturally arising from this formulation. First, what do
-we do when computing $\vh_1$? This is equivalent to saying what $\phi_y(y_{0})$
+we do when computing $\vh_1$? This is equivalent to asking what $\phi_y(y_{0})$
 is. There are two potential answers to this question:
 \begin{enumerate}
     \itemsep 0em
@@ -2606,7 +2606,7 @@ forget gate, input gate and the candidate memory state, respectively.
 
 The roles of those two gates are quite clear from their names. The forget gate
 decides how much information from the memory state will be {\em forgotten},
-while the input gate controls how much informationa about the new input
+while the input gate controls how much information about the new input
 (consisting of the input symbol and the previous output) will be {\em inputted}
 to the memory. They are computed by
 \begin{align}
