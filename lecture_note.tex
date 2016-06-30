@@ -2251,7 +2251,7 @@ From this output distribution at time step $t$, we can define a {\em per-step},
 {\em per-sample} cost function:
 \begin{align}
     \label{eq:cost_per_step}
-    C_{x,t}(\TT) = -\sum_{k=1}^K \II_{k=y} \mu_{t,k},
+    C_{x,t}(\TT) = -\log\left(\sum_{k=1}^K \II_{k=y} \mu_{t,k}\right),
 \end{align}
 where $K$ is the number of categories, four in this case.  We discussed earlier
 in Eq.~\eqref{eq:cat_crossentropy}.
@@ -2259,7 +2259,7 @@ Naturally a per-sample cost function is defined as the sum of these per-step,
 per-sample cost functions:
 \begin{align}
     \label{eq:cost_per_sample}
-    C_x(\TT) = -\sum_{t=1}^l \sum_{k=1}^K \II_{k=y} \mu_{t,k}.
+    C_x(\TT) = -\sum_{t=1}^l \log\left(\sum_{k=1}^K \II_{k=y} \mu_{t,k}\right).
 \end{align}
 
 \paragraph{Incorporating the Output Structures} 
