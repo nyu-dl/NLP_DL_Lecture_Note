@@ -3637,7 +3637,7 @@ zero probability:
 \begin{itemize}
     \itemsep 0em
     \item ``I like llama which is a domesticated South American
-        camelid.\footnote{
+        camelid.''\footnote{
             The description of a llama taken from Wikipedia:
             \url{https://en.wikipedia.org/wiki/Llama}
         }
@@ -4222,7 +4222,7 @@ as
 \begin{align*}
     p(w_1, w_2, \ldots, w_T) = \frac{1}{Z} \prod_{t=1}^{T-n} \prod_{j=t}^{t+n}
     \phi(\vw^t, \vw^j) = \frac{1}{Z} \exp\left( 
-        \sum_{t=1}^{T-n} \ve_{w^t}^\top \ve_{w^j}
+        \sum_{t=1}^{T-n} \sum_{j=t}^{t+n} \ve_{w^t}^\top \ve_{w^j}
     \right),
 \end{align*}
 where $Z$ is the normalization constant. This normalization constant makes the
