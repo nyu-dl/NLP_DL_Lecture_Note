@@ -4191,7 +4191,7 @@ words ($n$ words to the left and $n$ words to the right.) In this case, we get a
     \centering
     \includegraphics[width=\textwidth]{figures/mrflm.pdf}
     \caption{An example Markov random field language model (MRF-LM) with the
-    order $n=1$.}
+    order $n=2$.}
     \label{fig:mrf_lm}
 \end{figure}
 
@@ -4199,7 +4199,7 @@ In a Markov random field (MRF) language model (MRF-LM), we say each word in a
 given sentence is a random variable $w_i$. We connect each word with its $2n$
 surrounding words with {\em undirected} edges, and these edges represent the
 conditional dependency structure of the whole MRF-LM. An example of an MRF-LM
-with $n=1$ is shown in Fig.~\ref{fig:mrf_lm}.
+with $n=2$ is shown in Fig.~\ref{fig:mrf_lm}.
 
 A probability over a Markov random field is defined as a product of clique
 potentials. A potential is defined for each clique as a positive function whose
@@ -4232,7 +4232,7 @@ computational intractability in Markov random fields.
 \begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{figures/mrflm_mblanket.pdf}
-    \caption{Gray nodes indicate the Markov blank of the fourth word.}
+    \caption{Gray nodes indicate the Markov blanket of the fourth word.}
     \label{fig:mrf_lm_mblanket}
 \end{figure}
 
