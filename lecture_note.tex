@@ -1500,14 +1500,16 @@ From these computations, we see that
 
 Let us continue on to $u$ and $c$. We can again rewrite the derivatives w.r.t.
 these into
+
+
 \begin{align*}
-    \frac{\partial C_x}{\partial u} =& \frac{\partial C_x}{\partial{\mu}}
-    \frac{\partial C_x}{\partial{\underline{\mu}}}
+    \frac{\partial C_x}{\partial u} =& \frac{\partial C_x}{\partial
+    \underline{\mu}}
     \frac{\partial \underline{\mu}}{\partial \phi}
     \frac{\partial \phi}{\partial \underline{\phi}}
     \frac{\partial \underline{\phi}}{\partial u} \\
-    \frac{\partial C_x}{\partial c} =& \frac{\partial C_x}{\partial{\mu}}
-    \frac{\partial C_x}{\partial{\underline{\mu}}}
+    \frac{\partial C_x}{\partial c} =& \frac{\partial C_x}{\partial
+    \underline{\mu}}
     \frac{\partial \underline{\mu}}{\partial \phi}
     \frac{\partial \phi}{\partial \underline{\phi}}
     \frac{\partial \underline{\phi}}{\partial c},
@@ -1515,7 +1517,8 @@ these into
 where $\underline{\phi}$ is the input to $\phi$ similarly to $\underline{\mu}$
 was to the input to $\mu$.
 
-There are two things to notice here. First, we already have $\frac{\partial C_x}{\partial{\mu}}\frac{\partial C_x}{\partial{\underline{\mu}}}$ from computing the derivatives w.r.t. $w$ and
+There are two things to notice here. First, we already have $\frac{\partial
+C_x}{\partial \underline{\mu}}$ from computing the derivatives w.r.t. $w$ and
 $b$, meaning there is no need to re-compute it. Second, $\frac{\partial
 \underline{\mu}}{\partial \underline{\phi}}$ is shared between the derivatives
 w.r.t. $u$ and $c$.
