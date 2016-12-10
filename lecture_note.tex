@@ -2984,7 +2984,7 @@ $\sigmoid$. Why? Because $\frac{1}{\lambda} > 1$ for almost everywhere.
 
 Fortunately it turned out that the phenomenon of exploding gradient is quite
 easy to address. First, it is straightforward to detect whether the exploding
-gradient happened by inspecting the norm of the gradient fo the cost with
+gradient happened by inspecting the norm of the gradient of the cost with
 respect to the parameters $\left\| \nabla_{\TT} \tilde{C} \right\|$. If the
 gradient's norm is larger than some predefined threhold $\tau > 0$, we can
 simply renormalize the norm of the gradient to be $\tau$. Otherwise, we leave it
@@ -3230,8 +3230,8 @@ about the grammatical correctness of a given sentence.
 In short, we take the route here that the likeliness of a sentence be determined
 based on its agreement with common sense. The common sense here is captured by
 everyday use of natural language, which consequently implies that the statistics
-of natural language use can be a strong indicator for determining the likely of
-a natural language sentence. 
+of natural language use can be a strong indicator for determining the likeliness
+of a natural language sentence. 
 
 \subsection{What if those linguistic structures do exist}
 \label{sec:linguistic_lm}
@@ -3564,11 +3564,11 @@ least 10 words (``,'' is considered a separate word,) and this certainly will
 not be captured by $n$-gram language model with $n < 9$.  
 
 From these examples it is clear that there's a natural trade-off between the
-quality of probability estimate and statistical efficiency based on the choice
-of $n$ in $n$-gram language modeling. The higher $n$ the longer context the
+quality of probability estimates and statistical efficiency based on the choice
+of $n$ in $n$-gram language modeling. The higher $n$, the longer context the
 conditional distribution has, leading to a better model/estimate (second
-example,) however resulting in a situation of more sever data sparsity (see
-Sec.~\ref{sec:data_sparsity}.) On the other hand, the lower $n$ leads to the
+example), however resulting in a situation of more severe data sparsity (see
+Sec.~\ref{sec:data_sparsity}.) On the other hand, lower $n$ leads to
 worse language modeling (second example), but this will avoid the issue of data
 sparsity. 
 
@@ -3637,7 +3637,7 @@ zero probability:
 \begin{itemize}
     \itemsep 0em
     \item ``I like llama which is a domesticated South American
-        camelid.\footnote{
+        camelid.''\footnote{
             The description of a llama taken from Wikipedia:
             \url{https://en.wikipedia.org/wiki/Llama}
         }
@@ -4191,7 +4191,7 @@ words ($n$ words to the left and $n$ words to the right.) In this case, we get a
     \centering
     \includegraphics[width=\textwidth]{figures/mrflm.pdf}
     \caption{An example Markov random field language model (MRF-LM) with the
-    order $n=1$.}
+    order $n=2$.}
     \label{fig:mrf_lm}
 \end{figure}
 
@@ -4199,7 +4199,7 @@ In a Markov random field (MRF) language model (MRF-LM), we say each word in a
 given sentence is a random variable $w_i$. We connect each word with its $2n$
 surrounding words with {\em undirected} edges, and these edges represent the
 conditional dependency structure of the whole MRF-LM. An example of an MRF-LM
-with $n=1$ is shown in Fig.~\ref{fig:mrf_lm}.
+with $n=2$ is shown in Fig.~\ref{fig:mrf_lm}.
 
 A probability over a Markov random field is defined as a product of clique
 potentials. A potential is defined for each clique as a positive function whose
@@ -4222,7 +4222,7 @@ as
 \begin{align*}
     p(w_1, w_2, \ldots, w_T) = \frac{1}{Z} \prod_{t=1}^{T-n} \prod_{j=t}^{t+n}
     \phi(\vw^t, \vw^j) = \frac{1}{Z} \exp\left( 
-        \sum_{t=1}^{T-n} \ve_{w^t}^\top \ve_{w^j}
+        \sum_{t=1}^{T-n} \sum_{j=t}^{t+n} \ve_{w^t}^\top \ve_{w^j}
     \right),
 \end{align*}
 where $Z$ is the normalization constant. This normalization constant makes the
@@ -4232,7 +4232,7 @@ computational intractability in Markov random fields.
 \begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{figures/mrflm_mblanket.pdf}
-    \caption{Gray nodes indicate the Markov blank of the fourth word.}
+    \caption{Gray nodes indicate the Markov blanket of the fourth word.}
     \label{fig:mrf_lm_mblanket}
 \end{figure}
 
