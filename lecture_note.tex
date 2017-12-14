@@ -1,4 +1,8 @@
 \documentclass{report}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+
 \usepackage{authblk}
 \usepackage{mathptmx}
 \usepackage{url,latexsym,amsmath,amsthm,xspace,rotating,multirow,multicol,xspace,amssymb,paralist}
@@ -2751,17 +2755,46 @@ $\mQ$ is an orthogonal matrix. Then
 and
 \begin{align*}
     \left(\prod_{l'=1}^{l-t'} \mU\right) \mW\phi(x_{t'})
-    = \diag(\mS^{l-t'}) \odot (\underbrace{\mQ \mQ^{-1}}_{=\mI} \mW\phi(x_{t'})),
+    = \mQ \mS^{l-t'} \mQ^{-1} \mW\phi(x_{t'}),
 \end{align*}
 where $\odot$ is an element-wise product.
 
-What happens if the largest eigenvalue $e_{\max} = \max \diag(\mS)$ is larger
-than $1$, the norm of $\vh_l$ will {\em explode}, i.e., $\|\vh_l\| \to \infty$.
-Furthermore, due to the assumption that $\mW\phi(x_{t'}) > 0$, each element of
-$\vh_l$ will explode to infinity as well. The rate of growth is exponentially
-with respect to  the length of the input sequence, meaning that even when the
-input sequence is not too long, the norm of the memory state grows quickly if
-$e_{\max}$ is reasonably larger than $1$. 
+Now let us consider the norm of this term. The first thing to notice is that
+multiplying a vector with an orthogonal matrix preserves the norm of the vector.
+In other words,
+\begin{align*}
+    \|\mQ \mS^{l-t'} \mQ^{-1} \mW\phi(x_{t'})\|_2 
+    =& \|\mS^{l-t'} \mQ^{-1} \mW\phi(x_{t'})\|_2 
+    \\
+    =& \|\mQ^{-1} \mS^{l-t'} \mW\phi(x_{t'})\|_2 
+    \\
+    =& \|\mS^{l-t'} \underbrace{\mW\phi(x_{t'})}_{=\bar{x}} \|_2 
+\end{align*}
+The last equation can be re-written as the square-root of the sum of scalars:
+\begin{align*}
+    \|\mS^{l-t'} \underbrace{\mW\phi(x_{t'})}_{=\bar{x}} \|_2  
+    =& \sqrt{\sum_{i} (e_i^{l-t'} \bar{x}_i)^2},
+\end{align*}
+where $e_i$ is the $i$-th element of $\diag(\mS)$. 
+This quantity is bounded from below by
+\begin{align*}
+    \sqrt{\sum_{i} (e_i^{l-t'} \bar{x}_i)^2} \geq \sqrt{\sum_{i} (e_{\min}^{l-t'} \bar{x}_i)^2} 
+\end{align*}
+and from above by
+\begin{align*}
+    \sqrt{\sum_{i} (e_i^{l-t'} \bar{x}_i)^2} \leq \sqrt{\sum_{i}
+    (e_{\max}^{l-t'} \bar{x}_i)^2},
+\end{align*}
+where $e_{\min} = \min \diag(\mS)$ and $e_{\max} = \max \diag(\mS)$.
+
+Based on this inequalities, what would happen if the largest eigenvalue
+$e_{\max} = \max \diag(\mS)$ is larger than $1$, the norm of $\vh_l$ may (and
+will very likely) {\em explode}, i.e., $\|\vh_l\| \to \infty$.  Furthermore, due
+to the assumption that $\mW\phi(x_{t'}) > 0$, each element of $\vh_l$ will
+explode to infinity as well.  The rate of growth is exponentially with respect
+to  the length of the input sequence, meaning that even when the input sequence
+is not too long, the norm of the memory state grows quickly if $e_{\max}$ is
+reasonably larger than $1$. 
 
 This happens, because the nonlinearity $g$ is {\em unbounded}. If $g$ is bounded
 from both above and below, such as the case with $\tanh$, the norm of the memory
@@ -2918,7 +2951,8 @@ activation function $f$ is linear, this whole term reduces to
 \begin{align*}
     \frac{\partial \vh_{l_1}}{\partial \vh_{l_0+1}} = \mU^{l_1-l_0+1},
 \end{align*}
-which according to Sec.~\ref{sec:rect_explode}, will explode as $l\to\infty$ if
+which according to Sec.~\ref{sec:rect_explode}, will likely explode as
+$l\to\infty$ if
 \begin{align*}
     e_{\max} > 1,
 \end{align*}
