@@ -10,7 +10,7 @@ soon, but meanwhile, please refer to the issues (big thanks to @ankitkv!)
 I don't believe anyone will ever cite this lecture note. In the case you find
 urge to do so, please cite it using
 
-``
+```
 @techreport{cho2015note,
   title={Natural Language Understanding with Distributed Representation},
   author={Kyunghyun Cho},
@@ -19,5 +19,5 @@ urge to do so, please cite it using
   type={\notype},
   note={Lecture Note for DS-GA 3001}
 }
-``
+```
 
