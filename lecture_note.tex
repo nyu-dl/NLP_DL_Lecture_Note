@@ -3555,7 +3555,7 @@ sentences grows hints us a straightforward approach to addressing this: {\em
 limit the maximum length of phrases/sentences we estimate a probability on}.
 This idea is a foundation on which a so-called $n$-gram language model is based.
 
-In the $n$-gram language model, we first rewrite the probability of a given
+In the $n$-gram language model, using the chain rule we firstly rewrite the probability of a given
 sentence $S$ from Eq.~\eqref{eq:sentence_prob} into
 \begin{align}
     \label{eq:unidir_sentence}
@@ -3568,11 +3568,12 @@ this, the $n$-gram language model makes an important assumption that each
 conditional probability (Eq.~\eqref{eq:unidir_sentence}~(a)) is only conditioned
 on the $n-1$ preceding symbols only, meaning
 \begin{align*}
-    p(w_k | w_{<k}) \approx p(w_k | w_{k-n}, w_{k-n+1}, \ldots, w_{k-1}).
+    % p(w_k | w_{<k}) \approx p(w_k | w_{k-n}, w_{k-n+1}, \ldots, w_{k-1}). % history length should be n-1
+    p(w_k | w_{<k}) \approx p(w_k | w_{k-n+1}, \ldots, w_{k-1}).
 \end{align*}
 This results in 
 \begin{align*}
-    p(S) \approx \prod_{t=1}^T p(w_t | w_{t-n}, \ldots, w_{t-1}).
+    p(S) \approx \prod_{t=1}^T p(w_t | w_{t-n+1}, \ldots, w_{t-1}). % history should have n-1 length
 \end{align*}
 
 What does this mean? Under this assumption we are saying that any symbol in a
@@ -3603,37 +3604,37 @@ of $n$ in $n$-gram language modeling. The higher $n$ the longer context the
 conditional distribution has, leading to a better model/estimate (second
 example,) however resulting in a situation of more sever data sparsity (see
 Sec.~\ref{sec:data_sparsity}.) On the other hand, the lower $n$ leads to the
-worse language modeling (second example), but this will avoid the issue of data
+worse language modeling (second example), but this will mitigate the issue of data
 sparsity. 
 
 \paragraph{$n$-gram Probability Estimation}
 
-We can estimate the $n$-gram conditional probability $p(w_k | w_{k-n}, \ldots,
+We can estimate the $n$-gram conditional probability $p(w_k | w_{k-n+1}, \ldots,
 w_{k-1})$ from the training corpus.
 Since it is a
 {\em conditional} probability, we need to rewrite it according to the definition
 of the conditional probability:
 \begin{align}
     \label{eq:n_gram_prob}
-    p(w_k | w_{k-n}, \ldots, w_{k-1}) = \frac{p(
-    w_{k-n}, \ldots, w_{k-1}, w_k)}
-    {p(w_{k-n}, \ldots, w_{k-1})}
+    p(w_k | w_{k-n+1}, \ldots, w_{k-1}) = \frac{p(
+    w_{k-n+1}, \ldots, w_{k-1}, w_k)}
+    {p(w_{k-n+1}, \ldots, w_{k-1})}
 \end{align}
 This rewrite implies that the $n$-gram probability is equivalent to counting
-the occurrences of the $n$-gram $(w_{k-n}, \ldots, w_{k})$
-among all $n$-grams starting with $(w_{k-n}, \ldots, w_{k-1})$.
+the occurrences of the $n$-gram $(w_{k-n+1}, \ldots, w_{k})$
+among all $n$-grams starting with $(w_{k-n+1}, \ldots, w_{k-1})$.
 
 Let us consider the denominator first. The denominator can be computed by the
 marginalizing the $k$-th word ($w'$ below):
 \begin{align}
     \label{eq:n_gram_marginal}
-    p(w_{k-n}, \ldots, w_{k-1}) = \sum_{w'\in V} p(w_{k-n}, \ldots, w_{k-1}, w').
+    p(w_{k-n+1}, \ldots, w_{k-1}) = \sum_{w'\in V} p(w_{k-n+1}, \ldots, w_{k-1}, w').
 \end{align}
-From Eq.~\eqref{eq:sentence_mle}, we know how to estimate $p(w_{k-n}, \ldots,
+From Eq.~\eqref{eq:sentence_mle}, we know how to estimate $p(w_{k-n+1}, \ldots,
 w_{k-1}, w')$:
 \begin{align}
     \label{eq:n_gram_expand}
-    p(w_{k-n}, \ldots, w_{k-1}, w') \approx \frac{c(w_{k-n}, \ldots, w_{k-1},
+    p(w_{k-n+1}, \ldots, w_{k-1}, w') \approx \frac{c(w_{k-n+1}, \ldots, w_{k-1},
     w')}{N_n},
 \end{align}
 where $c(\cdot)$ is the number of occurrences of the given $n$-gram in the
@@ -3644,14 +3645,39 @@ Now let's plug Eq.~\eqref{eq:n_gram_expand} into
 Eqs.~\eqref{eq:n_gram_prob}--\eqref{eq:n_gram_marginal}:
 \begin{align}
     \label{eq:n_gram_mle}
-    p(w_k | w_{k-n}, \ldots, w_{k-1}) = \frac{
+    p(w_k | w_{k-n+1}, \ldots, w_{k-1}) = \frac{
         \cancel{\frac{1}{N_n}}
-        c(w_{k-n}, \ldots, w_{k-1}, w_k)}
+        c(w_{k-n+1}, \ldots, w_{k-1}, w_k)}
     {
-        \cancel{\frac{1}{N_n}} \sum_{w' \in V} c(w_{k-n}, \ldots, w_{k-1},
+        \cancel{\frac{1}{N_n}} \sum_{w' \in V} c(w_{k-n+1}, \ldots, w_{k-1},
     w')
 }
 \end{align}
+
+\paragraph{$n$-gram Probability Estimation using Maximum Likelihood approach}
+
+We can tackle the problem of $n$-gram probability estimation as a statistical optimization problem and solve it with maximum likelihood objective. Consider the training corpus with $N$ words and $n$-gram LM with conditional probability $p(w|h)$ where $h$ is a history sequence of length $n-1$. Now lets define the following log-likelihood objective function $J(\{p(w|h)\})$:
+\begin{align}
+	\label{eq:ngram_ll_fun}
+	J(\{p(w|h)\}) = \log \prod_{n = 1}^{N} p(w_n|h_n) = \sum_{n = 1}^{N} \log p(w_n|h_n) = \sum_{h,w} N(h,w) \log p(w|h)
+\end{align}
+where $N(h,w)$ is a count function defined as $N(h,w) = \sum_{n = 1}^{N} \delta (h,h_n) \delta(w,w_n)$.\newline
+In order to find the maximum value of log-likelihood function we can use method of Lagrangian multipliers with additional constraint $\sum_w p(w|h) = 1$ (law of total probability):
+\begin{align}
+	\label{eq:ngram_llfun_lagmul}
+	J^{*}(\{p(w|h); \mu_h\}) = \sum_{h,w} N(h,w) \log p(w|h) + \sum_h \mu_h \cdot \sum_w (p(w|h) - 1) 
+\end{align}
+
+Luckily this function has closed form solution and we can find it using partial derivatives:
+\begin{align}
+	\label{eq:ngram_llfun_pder}
+	\frac{\partial J^{*}}{\partial p(w|h)} = \frac{N(h,w)}{p(w|h)} - \mu_h = 0; \\
+	\label{eq:ngram_llfun_mder}
+	\frac{\partial J^{*}}{ \mu_h } = \sum_w p(w|h) - 1 = 0;
+\end{align}
+
+Now substituting $p(w|h)$ from Eq.~\eqref{eq:ngram_llfun_pder} to Eq.~\eqref{eq:ngram_llfun_mder} we can find $\mu_h = \sum_w N(h,w) = N(h, \cdot)$. Now we substitute $\mu_h$ back in Eq.~\eqref{eq:ngram_llfun_pder} and get $p(w|h) = \frac{N(h,w)}{N(h,\cdot)}$ and this is exactly the same result as we received in previous paragraph. \newline
+Therefore, the relative frequency estimation of $n$-gram language model corresponds to maximum likelihood estimator which gives us a nice observation w.r.t. the optimality of such estimation.
 
 \subsection{Smoothing and Back-Off}
 
@@ -3660,7 +3686,7 @@ Eqs.~\eqref{eq:n_gram_prob}--\eqref{eq:n_gram_marginal}:
 travel.}
 
 The biggest issue of having an $n$-gram that never occurs in the training corpus
-is that any sentence containing the $n$-gram will be given a zero probability
+is that any sentence containing such $n$-gram will be given a zero probability
 regardless of how likely all the other $n$-grams are. Let us continue with the
 example of ``I like llama''. With an $n$-gram language model built using all the
 books in Google Books, the following, totally valid sentence\footnote{
@@ -3704,16 +3730,16 @@ background occurrence.
 
 In this case, the estimate of an $n$-gram becomes
 \begin{align*}
-    p(w_k | w_{k-n}, \ldots, w_{k-1}) =&
-    \frac{\alpha + c(w_{k-n}, w_{k-n+1}, \ldots, w_k)}{\sum_{w' \in V} (\alpha
-    + c(w_{k-n}, w_{k-n+1}, \ldots, w'))} 
+    p(w_k | w_{k-n+1}, \ldots, w_{k-1}) =&
+    \frac{\alpha + c(w_{k-n+1}, \ldots, w_k)}{\sum_{w' \in V} (\alpha
+    + c(w_{k-n+1}, \ldots, w'))} 
     \\
     =&
-    \frac{\alpha + c(w_{k-n}, w_{k-n+1}, \ldots, w_k)}{\alpha |V| + \sum_{w' \in V}
-    c(w_{k-n}, w_{k-n+1}, \ldots, w')},
+    \frac{\alpha + c(w_{k-n+1}, \ldots, w_k)}{\alpha |V| + \sum_{w' \in V}
+    c(w_{k-n+1}, \ldots, w')},
 \end{align*}
-where $c(w_{k-n}, w_{k-n+1}, \ldots, w_k)$ is the number of occurrences of the
-given $n$-gram in the training corpus. $c(w_{k-n}, w_{k-n+1}, \ldots, w')$ is
+where $c(w_{k-n+1}, \ldots, w_k)$ is the number of occurrences of the
+given $n$-gram in the training corpus. $c(w_{k-n+1}, \ldots, w')$ is
 the number of occurrences of the given $n$-gram if the last word $w_k$ is
 substituted with a word $w'$ from the vocabulary $V$. $\alpha$ is often set to
 be a scalar such that $0 < \alpha \leq 1$. See the difference from the original
@@ -3728,10 +3754,10 @@ the estimate of the $n$-gram probability in Eq.~\eqref{eq:n_gram_mle} and the
 estimate of the $(n-1)$-gram probability. This can written down as
 \begin{align}
     p^S(w_k | w_{k-n}, \ldots, w_{k-1}) = &
-    \lambda(w_{k-n}, \ldots, w_{k-1}) p(w_k | w_{k-n}, \ldots, w_{k-1}) 
+    \lambda(w_{k-n+1}, \ldots, w_{k-1}) p(w_k | w_{k-n+1}, \ldots, w_{k-1}) 
     \nonumber \\
     \label{eq:n_gram_smooth}
-    & + (1 - \lambda(w_{k-n}, \ldots, w_{k-1})) p^S(w_k | w_{k-n+1}, \ldots,
+    & + (1 - \lambda(w_{k-n+1}, \ldots, w_{k-1})) p^S(w_k | w_{k-n+2}, \ldots,
     w_{k-1}).
 \end{align}
 This implies that the $n$-gram (smoothed) probability is computed recursively by
@@ -3753,11 +3779,11 @@ $n$-grams. Therefore, one needs to use a separate corpus to fit $\lambda$'s.
 More generally, we may rewrite Eq.~\eqref{eq:n_gram_smooth} as
 \begin{align}
     \label{eq:n_gram_smoothing_general}
-    p^S(w_k | w_{k-n}, \ldots, w_{k-1}) = \left\{ 
+    p^S(w_k | w_{k-n+1}, \ldots, w_{k-1}) = \left\{ 
         \begin{array}{l}
-            \alpha(w_k | w_{k-n}, \ldots, w_{k-1}), \text{ if } c(w_{k-n},
+            \alpha(w_k | w_{k-n+1}, \ldots, w_{k-1}), \text{ if } c(w_{k-n+1},
             \ldots, w_{k-1}, w_k) > 0 \\
-            \gamma(w_{k-n+1}, \ldots, w_{k}) p^S(w_{k}|w_{k-n+1}, \ldots,
+            \gamma(w_{k-n+2}, \ldots, w_{k}) p^S(w_{k}|w_{k-n+2}, \ldots,
             w_{k-1}), \text{ otherwise}
         \end{array}
         \right.
@@ -3784,17 +3810,17 @@ this, we define the following so-called discounting factors:
 Also, let us define the following quantities describing the number of all
 possible words following a given $n$-gram with a specified frequency $l$:
 \begin{align*}
-    N_l(w_{k-n}, \ldots, w_{k-1}) = |\{ c(w_{k-n}, \ldots, w_{k-1}, w_k) = l \}|
+    N_l(w_{k-n+1}, \ldots, w_{k-1}) = |\{ c(w_{k-n+1}, \ldots, w_{k-1}, w_k) = l \}|
 \end{align*}
 
 The modified KN smoothing then defines $\alpha$ in
 Eq.~\eqref{eq:n_gram_smoothing_general} to be
 \begin{align*}
-    \alpha(w_k | w_{k-n}, \ldots, w_{k-1}) =
+    \alpha(w_k | w_{k-n+1}, \ldots, w_{k-1}) =
     \frac{
-        c(w_{k-n}, \ldots, w_{k-1}, w_k) - D(c(w_{k-n}, \ldots, w_{k-1}, w_k))
+        c(w_{k-n+1}, \ldots, w_{k-1}, w_k) - D(c(w_{k-n+1}, \ldots, w_{k-1}, w_k))
     }{
-        \sum_{w' \in V} c(w_{k-n}, \ldots, w_{k-1}, w')
+        \sum_{w' \in V} c(w_{k-n+1}, \ldots, w_{k-1}, w')
     },
 \end{align*}
 where $D$ is
@@ -3810,13 +3836,13 @@ where $D$ is
 \end{align*}
 And, $\gamma$ is defined as
 \begin{align*}
-    \gamma(w_{k-n}, \ldots, w_{k-1})  = 
+    \gamma(w_{k-n+1}, \ldots, w_{k-1})  = 
     \frac{
-        D_1 N_1(w_{k-n}, \ldots, w_{k-1}) 
-        + D_2 N_2(w_{k-n}, \ldots, w_{k-1})
-        + D_{3+} N_{3+}(w_{k-n}, \ldots, w_{k-1})
+        D_1 N_1(w_{k-n+1}, \ldots, w_{k-1}) 
+        + D_2 N_2(w_{k-n+1}, \ldots, w_{k-1})
+        + D_{3+} N_{3+}(w_{k-n+1}, \ldots, w_{k-1})
     }{
-        \sum_{w' \in V} c(w_{k-n}, \ldots, w_{k-1}, w')
+        \sum_{w' \in V} c(w_{k-n+1}, \ldots, w_{k-1}, w')
     }.
 \end{align*}
 
@@ -3904,11 +3930,11 @@ natural language that is able to alleviate this lack of generalization.
 
 One thing we notice from $n$-gram language modelling is that this boils down to
 computing the conditional distribution of a next word $w_k$ given $n-1$
-preceding words $w_{k-n}, \ldots, w_{k-1}$. In other words, the goal of $n$-gram
+preceding words $w_{k-n+1}, \ldots, w_{k-1}$. In other words, the goal of $n$-gram
 language modeling is to find a function that takes as input $n-1$ words and
 returns a conditional probability of a next word:
 \begin{align*}
-    p(w_k | w_{k-n}, \ldots, w_{k-1}) = f_{\TT}^{w_k} (w_{k-n}, \ldots,
+    p(w_k | w_{k-n+1}, \ldots, w_{k-1}) = f_{\TT}^{w_k} (w_{k-n+1}, \ldots,
     w_{k-1}).
 \end{align*}
 This is almost exactly what we have learned in
