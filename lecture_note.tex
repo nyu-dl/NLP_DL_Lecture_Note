@@ -3568,12 +3568,11 @@ this, the $n$-gram language model makes an important assumption that each
 conditional probability (Eq.~\eqref{eq:unidir_sentence}~(a)) is only conditioned
 on the $n-1$ preceding symbols only, meaning
 \begin{align*}
-    % p(w_k | w_{<k}) \approx p(w_k | w_{k-n}, w_{k-n+1}, \ldots, w_{k-1}). % history length should be n-1
     p(w_k | w_{<k}) \approx p(w_k | w_{k-n+1}, \ldots, w_{k-1}).
 \end{align*}
 This results in 
 \begin{align*}
-    p(S) \approx \prod_{t=1}^T p(w_t | w_{t-n+1}, \ldots, w_{t-1}). % history should have n-1 length
+    p(S) \approx \prod_{t=1}^T p(w_t | w_{t-n+1}, \ldots, w_{t-1}).
 \end{align*}
 
 What does this mean? Under this assumption we are saying that any symbol in a
@@ -3686,7 +3685,7 @@ Therefore, the relative frequency estimation of $n$-gram language model correspo
 travel.}
 
 The biggest issue of having an $n$-gram that never occurs in the training corpus
-is that any sentence containing such $n$-gram will be given a zero probability
+is that any sentence containing such as $n$-gram will be given a zero probability
 regardless of how likely all the other $n$-grams are. Let us continue with the
 example of ``I like llama''. With an $n$-gram language model built using all the
 books in Google Books, the following, totally valid sentence\footnote{
